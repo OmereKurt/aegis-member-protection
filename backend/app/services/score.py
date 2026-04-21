@@ -42,3 +42,45 @@ def score_suspicious_login(normalized_alert: dict) -> dict:
         "severity": severity,
         "reasons": reasons
     }
+
+
+def score_phishing_email(normalized_alert: dict) -> dict:
+    context = normalized_alert["normalized_context"]
+
+    score = 0
+    reasons = []
+
+    if context["display_name_mismatch"]:
+        score += 20
+        reasons.append("Display name does not match sender identity")
+
+    if context["url_present"]:
+        score += 15
+        reasons.append("Email contains a URL")
+
+    if context["attachment_present"]:
+        score += 20
+        reasons.append("Email contains an attachment")
+
+    if context["newly_registered_domain"]:
+        score += 25
+        reasons.append("Sender domain appears newly registered")
+
+    if context["multiple_recipients"]:
+        score += 10
+        reasons.append("Email targeted multiple recipients")
+
+    if score >= 70:
+        severity = "Critical"
+    elif score >= 40:
+        severity = "High"
+    elif score >= 20:
+        severity = "Medium"
+    else:
+        severity = "Low"
+
+    return {
+        "score": score,
+        "severity": severity,
+        "reasons": reasons
+    }

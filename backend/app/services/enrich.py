@@ -67,3 +67,28 @@ def enrich_ip(ip: str, country: str, city: str) -> dict:
         "network_type": "residential_or_unknown",
         "note": "No strong enrichment signals were identified from the local mock enrichment logic."
     }
+
+
+def enrich_domain(domain: str, newly_registered_domain: bool) -> dict:
+    if newly_registered_domain:
+        return {
+            "domain": domain,
+            "reputation": "Suspicious",
+            "category": "new_domain",
+            "note": "The sender domain appears newly registered, which is a common phishing risk signal."
+        }
+
+    if domain.endswith(".ru") or domain.endswith(".zip"):
+        return {
+            "domain": domain,
+            "reputation": "Suspicious",
+            "category": "high_risk_tld",
+            "note": "The sender domain uses a TLD that may warrant additional scrutiny in phishing workflows."
+        }
+
+    return {
+        "domain": domain,
+        "reputation": "Neutral",
+        "category": "standard_domain",
+        "note": "No strong domain-based risk indicators were identified from the local mock enrichment logic."
+    }
