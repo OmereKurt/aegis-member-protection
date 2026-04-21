@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+function getSeverityClass(severity: string) {
+  const value = severity.toLowerCase();
+  if (value === "low") return "badge badge-low";
+  if (value === "medium") return "badge badge-medium";
+  if (value === "high") return "badge badge-high";
+  return "badge badge-critical";
+}
+
 export default function CasesPage() {
   const [cases, setCases] = useState<any[]>([]);
   const [error, setError] = useState("");
@@ -26,24 +34,29 @@ export default function CasesPage() {
   }, []);
 
   return (
-    <main style={{ maxWidth: "900px", margin: "40px auto", fontFamily: "Arial, sans-serif", padding: "0 16px" }}>
+    <main>
       <h1>Saved Cases</h1>
-      <a href="/">Back to Submit Alert</a>
+      <p className="muted">Previously analyzed alerts stored by the backend.</p>
+      <div className="link-row">
+        <a href="/">Back to Submit Alert</a>
+      </div>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className="error">{error}</p>}
 
-      <div style={{ marginTop: "24px", display: "grid", gap: "16px" }}>
+      <div className="case-list">
         {cases.map((caseItem) => (
-          <div
-            key={caseItem.id}
-            style={{ border: "1px solid #ccc", padding: "16px", borderRadius: "8px" }}
-          >
+          <div key={caseItem.id} className="card">
             <h2>{caseItem.title}</h2>
             <p><strong>ID:</strong> {caseItem.id}</p>
-            <p><strong>Severity:</strong> {caseItem.severity}</p>
+            <p>
+              <strong>Severity:</strong>{" "}
+              <span className={getSeverityClass(caseItem.severity)}>{caseItem.severity}</span>
+            </p>
             <p><strong>Score:</strong> {caseItem.score}</p>
             <p><strong>Summary:</strong> {caseItem.summary}</p>
-            <a href={`/cases/${caseItem.id}`}>View Case Details</a>
+            <div className="link-row">
+              <a href={`/cases/${caseItem.id}`}>View Case Details</a>
+            </div>
           </div>
         ))}
       </div>
