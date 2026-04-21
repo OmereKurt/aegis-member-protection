@@ -28,6 +28,9 @@ class ScamCase(Base):
 
     source_unit = Column(String, nullable=False, default="Branch")
 
+    assigned_owner = Column(String, nullable=True)
+    assigned_team = Column(String, nullable=True)
+
     trusted_contact_exists = Column(Boolean, nullable=False, default=False)
     trusted_contact_name = Column(String, nullable=True)
     trusted_contact_phone = Column(String, nullable=True)

@@ -45,6 +45,8 @@ export default function CaseDetailPage() {
   const [error, setError] = useState("");
   const [statusValue, setStatusValue] = useState("New");
   const [notesValue, setNotesValue] = useState("");
+  const [assignedOwnerValue, setAssignedOwnerValue] = useState("");
+  const [assignedTeamValue, setAssignedTeamValue] = useState("");
   const [outcomeValue, setOutcomeValue] = useState("unknown");
   const [closureNotesValue, setClosureNotesValue] = useState("");
 
@@ -60,6 +62,8 @@ export default function CaseDetailPage() {
       setCaseData(data);
       setStatusValue(data.status);
       setNotesValue(data.notes || "");
+      setAssignedOwnerValue(data.assigned_owner || "");
+      setAssignedTeamValue(data.assigned_team || "");
       setOutcomeValue(data.outcome_type || "unknown");
       setClosureNotesValue(data.closure_notes || "");
       setError("");
@@ -97,6 +101,24 @@ export default function CaseDetailPage() {
       });
 
       if (!response.ok) throw new Error("Failed to update notes");
+      await loadCase();
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    }
+  }
+
+  async function saveAssignment() {
+    try {
+      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/assignment`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          assigned_owner: assignedOwnerValue || null,
+          assigned_team: assignedTeamValue || null,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update assignment");
       await loadCase();
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -182,6 +204,8 @@ export default function CaseDetailPage() {
               <p><strong>Updated:</strong> {formatTimestamp(caseData.updated_at)}</p>
               <p><strong>Urgency Score:</strong> {caseData.urgency_score}</p>
               <p><strong>Source Unit:</strong> {caseData.source_unit}</p>
+              <p><strong>Assigned Owner:</strong> {caseData.assigned_owner || "Unassigned"}</p>
+              <p><strong>Assigned Team:</strong> {caseData.assigned_team || "Unassigned"}</p>
             </div>
 
             <div className="button-row">
@@ -217,6 +241,35 @@ export default function CaseDetailPage() {
                 <p><strong>Trusted Contact Outreach Recommended:</strong> {caseData.playbook.trusted_contact_recommended ? "Yes" : "No"}</p>
                 <p><strong>External Reporting May Be Needed:</strong> {caseData.playbook.law_enforcement_reporting_recommended ? "Yes" : "No"}</p>
               </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Assignment</h2>
+            <div className="form-grid-2" style={{ marginTop: "12px" }}>
+              <div className="field-group">
+                <label>Assigned Owner</label>
+                <input
+                  value={assignedOwnerValue}
+                  onChange={(e) => setAssignedOwnerValue(e.target.value)}
+                  placeholder="Taylor Smith"
+                />
+              </div>
+
+              <div className="field-group">
+                <label>Assigned Team</label>
+                <input
+                  value={assignedTeamValue}
+                  onChange={(e) => setAssignedTeamValue(e.target.value)}
+                  placeholder="Fraud Operations"
+                />
+              </div>
+            </div>
+
+            <div className="button-row">
+              <button className="button" type="button" onClick={saveAssignment}>
+                Save Assignment
+              </button>
             </div>
           </div>
 

@@ -8,6 +8,7 @@ from app.core.database import SessionLocal
 from app.models.action_log import ActionLog
 from app.models.scam_case import ScamCase
 from app.schemas.scam_case import (
+    CaseAssignmentUpdate,
     CaseCloseUpdate,
     CaseNotesUpdate,
     CaseStatusUpdate,
@@ -67,6 +68,8 @@ def serialize_case(db: Session, case: ScamCase) -> dict:
         "age_band": case.age_band,
         "vulnerable_adult_flag": case.vulnerable_adult_flag,
         "source_unit": case.source_unit,
+        "assigned_owner": case.assigned_owner,
+        "assigned_team": case.assigned_team,
         "trusted_contact_exists": case.trusted_contact_exists,
         "trusted_contact_name": case.trusted_contact_name,
         "trusted_contact_phone": case.trusted_contact_phone,
@@ -116,6 +119,8 @@ def list_scam_cases():
                     "title": case.title,
                     "customer_identifier": case.customer_identifier,
                     "source_unit": case.source_unit,
+                    "assigned_owner": case.assigned_owner,
+                    "assigned_team": case.assigned_team,
                     "scam_type": case.scam_type,
                     "urgency": case.urgency,
                     "status": case.status,
@@ -192,6 +197,8 @@ def create_scam_case(payload: ScamCaseIntakeRequest):
             age_band=payload.age_band,
             vulnerable_adult_flag=payload.vulnerable_adult_flag,
             source_unit=payload.source_unit,
+            assigned_owner=None,
+            assigned_team=None,
             trusted_contact_exists=payload.trusted_contact_exists,
             trusted_contact_name=payload.trusted_contact_name,
             trusted_contact_phone=payload.trusted_contact_phone,
@@ -292,6 +299,40 @@ def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
         )
 
         return {"id": case.id, "notes": case.notes}
+    finally:
+        db.close()
+
+
+@router.put("/{case_id}/assignment")
+def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
+    db: Session = SessionLocal()
+
+    try:
+        case = db.query(ScamCase).filter(ScamCase.id == case_id).first()
+
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+
+        case.assigned_owner = payload.assigned_owner
+        case.assigned_team = payload.assigned_team
+        db.commit()
+        db.refresh(case)
+
+        owner_text = case.assigned_owner or "Unassigned owner"
+        team_text = case.assigned_team or "Unassigned team"
+
+        write_action_log(
+            db,
+            case.id,
+            "assignment_updated",
+            f"Assignment updated to owner: {owner_text}; team: {team_text}.",
+        )
+
+        return {
+            "id": case.id,
+            "assigned_owner": case.assigned_owner,
+            "assigned_team": case.assigned_team,
+        }
     finally:
         db.close()
 

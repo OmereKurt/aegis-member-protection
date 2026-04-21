@@ -95,11 +95,15 @@ export default function HomePage() {
         const customerIdentifier = String(caseItem.customer_identifier || "").toLowerCase();
         const title = String(caseItem.title || "").toLowerCase();
         const sourceUnit = String(caseItem.source_unit || "").toLowerCase();
+        const assignedOwner = String(caseItem.assigned_owner || "").toLowerCase();
+        const assignedTeam = String(caseItem.assigned_team || "").toLowerCase();
         return (
           caseId.includes(query) ||
           customerIdentifier.includes(query) ||
           title.includes(query) ||
-          sourceUnit.includes(query)
+          sourceUnit.includes(query) ||
+          assignedOwner.includes(query) ||
+          assignedTeam.includes(query)
         );
       });
     }
@@ -218,7 +222,7 @@ export default function HomePage() {
               <label>Search</label>
               <input
                 type="text"
-                placeholder="Search by case ID, member ID, title, or source unit"
+                placeholder="Search by case ID, member ID, title, source unit, owner, or team"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -284,6 +288,8 @@ export default function HomePage() {
                 <div className="case-meta">
                   <p><strong>Member ID:</strong> {caseItem.customer_identifier}</p>
                   <p><strong>Source Unit:</strong> {caseItem.source_unit}</p>
+                  <p><strong>Assigned Owner:</strong> {caseItem.assigned_owner || "Unassigned"}</p>
+                  <p><strong>Assigned Team:</strong> {caseItem.assigned_team || "Unassigned"}</p>
                   <p><strong>Case Type:</strong> {humanizeScamType(caseItem.scam_type)}</p>
                   <p><strong>Potential Loss:</strong> ${Number(caseItem.amount_at_risk || 0).toLocaleString()}</p>
                   <p><strong>Created:</strong> {formatTimestamp(caseItem.created_at)}</p>

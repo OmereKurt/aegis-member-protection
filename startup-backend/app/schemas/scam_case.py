@@ -53,6 +53,11 @@ class CaseNotesUpdate(BaseModel):
     notes: str = ""
 
 
+class CaseAssignmentUpdate(BaseModel):
+    assigned_owner: Optional[str] = None
+    assigned_team: Optional[str] = None
+
+
 class CaseCloseUpdate(BaseModel):
     outcome_type: OutcomeType
     closure_notes: str
@@ -86,6 +91,8 @@ class ScamCaseResponse(BaseModel):
     vulnerable_adult_flag: bool
 
     source_unit: str
+    assigned_owner: Optional[str] = None
+    assigned_team: Optional[str] = None
 
     trusted_contact_exists: bool
     trusted_contact_name: Optional[str] = None
