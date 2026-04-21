@@ -279,6 +279,24 @@ export default function CaseDetailPage() {
               <p><strong>Current Closure Notes:</strong> {caseData.closure_notes || "Not set"}</p>
             </div>
           </div>
+
+          <div className="card">
+            <h2>Activity Timeline</h2>
+
+            {caseData.action_logs.length === 0 ? (
+              <p className="muted">No activity logged yet.</p>
+            ) : (
+              <div className="case-list">
+                {caseData.action_logs.map((log: any) => (
+                  <div key={log.id} className="summary-box">
+                    <p><strong>{log.action_type}</strong></p>
+                    <p className="muted">{formatTimestamp(log.created_at)}</p>
+                    <p>{log.details}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </main>

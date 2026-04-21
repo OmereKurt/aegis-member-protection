@@ -56,6 +56,13 @@ class CaseCloseUpdate(BaseModel):
     closure_notes: str
 
 
+class ActionLogResponse(BaseModel):
+    id: int
+    created_at: Optional[str] = None
+    action_type: str
+    details: str
+
+
 class ScamCaseResponse(BaseModel):
     id: int
     case_id: str
@@ -98,3 +105,5 @@ class ScamCaseResponse(BaseModel):
     notes: str
     outcome_type: Optional[str] = None
     closure_notes: Optional[str] = None
+
+    action_logs: list[ActionLogResponse]

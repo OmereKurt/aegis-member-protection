@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
+from app.models.action_log import ActionLog
 from app.models.scam_case import ScamCase
 from app.schemas.scam_case import (
     CaseCloseUpdate,
@@ -18,7 +19,38 @@ from app.services.scam_case_logic import build_case_artifacts
 router = APIRouter(prefix="/api/scam-cases", tags=["scam-cases"])
 
 
-def serialize_case(case: ScamCase) -> dict:
+def write_action_log(db: Session, scam_case_id: int, action_type: str, details: str):
+    log = ActionLog(
+        scam_case_id=scam_case_id,
+        action_type=action_type,
+        details=details,
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return log
+
+
+def serialize_action_logs(db: Session, scam_case_id: int) -> list[dict]:
+    logs = (
+        db.query(ActionLog)
+        .filter(ActionLog.scam_case_id == scam_case_id)
+        .order_by(ActionLog.created_at.desc(), ActionLog.id.desc())
+        .all()
+    )
+
+    return [
+        {
+            "id": log.id,
+            "created_at": log.created_at.isoformat() if log.created_at else None,
+            "action_type": log.action_type,
+            "details": log.details,
+        }
+        for log in logs
+    ]
+
+
+def serialize_case(db: Session, case: ScamCase) -> dict:
     return {
         "id": case.id,
         "case_id": case.case_id,
@@ -51,6 +83,7 @@ def serialize_case(case: ScamCase) -> dict:
         "notes": case.notes,
         "outcome_type": case.outcome_type,
         "closure_notes": case.closure_notes,
+        "action_logs": serialize_action_logs(db, case.id),
     }
 
 
@@ -137,7 +170,14 @@ def create_scam_case(payload: ScamCaseIntakeRequest):
         db.commit()
         db.refresh(scam_case)
 
-        return serialize_case(scam_case)
+        write_action_log(
+            db,
+            scam_case.id,
+            "case_created",
+            f"Case created with {scam_case.urgency} urgency and scam type {scam_case.scam_type}.",
+        )
+
+        return serialize_case(db, scam_case)
     finally:
         db.close()
 
@@ -152,7 +192,7 @@ def get_scam_case(case_id: int):
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
 
-        return serialize_case(case)
+        return serialize_case(db, case)
     finally:
         db.close()
 
@@ -167,9 +207,17 @@ def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
 
+        old_status = case.status
         case.status = payload.status
         db.commit()
         db.refresh(case)
+
+        write_action_log(
+            db,
+            case.id,
+            "status_changed",
+            f"Status changed from {old_status} to {case.status}.",
+        )
 
         return {"id": case.id, "status": case.status}
     finally:
@@ -189,6 +237,14 @@ def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
         case.notes = payload.notes
         db.commit()
         db.refresh(case)
+
+        preview = payload.notes.strip()[:120] if payload.notes.strip() else "Notes cleared."
+        write_action_log(
+            db,
+            case.id,
+            "notes_updated",
+            preview,
+        )
 
         return {"id": case.id, "notes": case.notes}
     finally:
@@ -211,6 +267,13 @@ def close_scam_case(case_id: int, payload: CaseCloseUpdate):
 
         db.commit()
         db.refresh(case)
+
+        write_action_log(
+            db,
+            case.id,
+            "case_closed",
+            f"Case closed with outcome {case.outcome_type}.",
+        )
 
         return {
             "id": case.id,
