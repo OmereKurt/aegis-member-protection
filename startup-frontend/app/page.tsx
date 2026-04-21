@@ -52,6 +52,26 @@ export default function HomePage() {
     loadCases();
   }, []);
 
+  async function quickUpdateStatus(caseId: number, status: string) {
+    try {
+      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update status");
+      }
+
+      await loadCases();
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    }
+  }
+
   const filteredCases = useMemo(() => {
     let results = [...cases];
 
@@ -234,26 +254,52 @@ export default function HomePage() {
           <div className="case-list">
             {filteredCases.map((caseItem) => (
               <div key={caseItem.id} className="summary-box">
-                <p><strong>{caseItem.title}</strong></p>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+                  <div>
+                    <p><strong>{caseItem.title}</strong></p>
+                    <p className="muted">Case ID: {caseItem.case_id}</p>
+                  </div>
+                  <div className="nav-row" style={{ marginTop: 0 }}>
+                    <span className={urgencyClass(caseItem.urgency)}>{caseItem.urgency}</span>
+                    <span className={statusClass(caseItem.status)}>{caseItem.status}</span>
+                  </div>
+                </div>
+
                 <div className="case-meta">
-                  <p><strong>Case ID:</strong> {caseItem.case_id}</p>
                   <p><strong>Customer:</strong> {caseItem.customer_identifier}</p>
                   <p><strong>Scam Type:</strong> {caseItem.scam_type}</p>
                   <p><strong>Amount at Risk:</strong> ${Number(caseItem.amount_at_risk || 0).toLocaleString()}</p>
                   <p><strong>Created:</strong> {formatTimestamp(caseItem.created_at)}</p>
                 </div>
 
-                <div className="nav-row" style={{ marginTop: "8px", marginBottom: "8px" }}>
-                  <span className={urgencyClass(caseItem.urgency)}>{caseItem.urgency}</span>
-                  <span className={statusClass(caseItem.status)}>{caseItem.status}</span>
-                </div>
-
                 <p className="muted">
                   {caseItem.notes ? `Notes: ${caseItem.notes}` : "No notes yet."}
                 </p>
 
-                <div className="nav-row">
-                  <a href={`/cases/${caseItem.id}`}>Open Case</a>
+                <div className="button-row">
+                  <a href={`/cases/${caseItem.id}`} className="button">
+                    Open Case
+                  </a>
+
+                  {String(caseItem.status) !== "In Review" && String(caseItem.status) !== "Closed" && (
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      onClick={() => quickUpdateStatus(caseItem.id, "In Review")}
+                    >
+                      Mark In Review
+                    </button>
+                  )}
+
+                  {String(caseItem.status) !== "Escalated" && String(caseItem.status) !== "Closed" && (
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      onClick={() => quickUpdateStatus(caseItem.id, "Escalated")}
+                    >
+                      Escalate
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

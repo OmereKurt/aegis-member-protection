@@ -91,6 +91,11 @@ export default function CaseDetailPage() {
   }
 
   async function closeCase() {
+    if (!closureNotesValue.trim()) {
+      setError("Closure notes are required before closing a case.");
+      return;
+    }
+
     try {
       const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/close`, {
         method: "PUT",
@@ -108,12 +113,28 @@ export default function CaseDetailPage() {
     }
   }
 
+  async function quickStatus(status: string) {
+    setStatusValue(status);
+    try {
+      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update status");
+      await loadCase();
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    }
+  }
+
   return (
     <main>
       <div className="page-header">
         <h1>Case Workspace</h1>
         <p className="page-subtitle">
-          Review the case, follow the intervention playbook, document notes, and close the case with an outcome.
+          Work the case from intake through intervention and closure.
         </p>
 
         <div className="nav-row">
@@ -128,23 +149,61 @@ export default function CaseDetailPage() {
       {caseData && (
         <div className="grid">
           <div className="card">
-            <h2>{caseData.title}</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
+              <div>
+                <h2>{caseData.title}</h2>
+                <p className="muted">{caseData.case_id}</p>
+              </div>
 
-            <div className="case-meta">
-              <p><strong>Case ID:</strong> {caseData.case_id}</p>
-              <p><strong>Created:</strong> {formatTimestamp(caseData.created_at)}</p>
-              <p><strong>Updated:</strong> {formatTimestamp(caseData.updated_at)}</p>
+              <div className="nav-row" style={{ marginTop: 0 }}>
+                <span className={urgencyClass(caseData.urgency)}>{caseData.urgency}</span>
+                <span className={statusClass(caseData.status)}>{caseData.status}</span>
+              </div>
+            </div>
+
+            <div className="case-meta" style={{ marginTop: "16px" }}>
               <p><strong>Customer:</strong> {caseData.customer_identifier}</p>
               <p><strong>Scam Type:</strong> {caseData.scam_type}</p>
               <p><strong>Amount at Risk:</strong> ${Number(caseData.amount_at_risk || 0).toLocaleString()}</p>
+              <p><strong>Created:</strong> {formatTimestamp(caseData.created_at)}</p>
+              <p><strong>Updated:</strong> {formatTimestamp(caseData.updated_at)}</p>
+              <p><strong>Urgency Score:</strong> {caseData.urgency_score}</p>
             </div>
 
-            <div className="nav-row">
-              <span className={urgencyClass(caseData.urgency)}>{caseData.urgency}</span>
-              <span className={statusClass(caseData.status)}>{caseData.status}</span>
+            <div className="button-row">
+              {caseData.status !== "In Review" && caseData.status !== "Closed" && (
+                <button className="button" type="button" onClick={() => quickStatus("In Review")}>
+                  Take Into Review
+                </button>
+              )}
+              {caseData.status !== "Escalated" && caseData.status !== "Closed" && (
+                <button className="button button-secondary" type="button" onClick={() => quickStatus("Escalated")}>
+                  Escalate Now
+                </button>
+              )}
             </div>
 
-            <p style={{ marginTop: "12px" }}><strong>Summary:</strong> {caseData.summary}</p>
+            <p style={{ marginTop: "14px" }}><strong>Summary:</strong> {caseData.summary}</p>
+          </div>
+
+          <div className="card">
+            <h2>Immediate Next Actions</h2>
+
+            <div className="summary-box" style={{ marginTop: "12px" }}>
+              <p><strong>Priority Guidance</strong></p>
+              <ul>
+                {caseData.playbook.recommended_actions.slice(0, 3).map((item: string, index: number) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+
+              <div className="case-meta">
+                <p><strong>Escalation Required:</strong> {caseData.playbook.escalation_required ? "Yes" : "No"}</p>
+                <p><strong>Hold Recommended:</strong> {caseData.playbook.hold_recommended ? "Yes" : "No"}</p>
+                <p><strong>Trusted Contact Recommended:</strong> {caseData.playbook.trusted_contact_recommended ? "Yes" : "No"}</p>
+                <p><strong>Law Enforcement Reporting Recommended:</strong> {caseData.playbook.law_enforcement_reporting_recommended ? "Yes" : "No"}</p>
+              </div>
+            </div>
           </div>
 
           <div className="card">
@@ -175,7 +234,6 @@ export default function CaseDetailPage() {
 
           <div className="card">
             <h2>Urgency Reasoning</h2>
-            <p><strong>Urgency Score:</strong> {caseData.urgency_score}</p>
 
             <h3 className="section-title">Reasons</h3>
             <ul>
@@ -204,17 +262,10 @@ export default function CaseDetailPage() {
                 <li key={index}>{item}</li>
               ))}
             </ul>
-
-            <div className="case-meta">
-              <p><strong>Escalation Required:</strong> {caseData.playbook.escalation_required ? "Yes" : "No"}</p>
-              <p><strong>Hold Recommended:</strong> {caseData.playbook.hold_recommended ? "Yes" : "No"}</p>
-              <p><strong>Trusted Contact Recommended:</strong> {caseData.playbook.trusted_contact_recommended ? "Yes" : "No"}</p>
-              <p><strong>Law Enforcement Reporting Recommended:</strong> {caseData.playbook.law_enforcement_reporting_recommended ? "Yes" : "No"}</p>
-            </div>
           </div>
 
           <div className="card">
-            <h2>Status</h2>
+            <h2>Status Control</h2>
             <div className="field-group" style={{ maxWidth: "320px", marginTop: "12px" }}>
               <label>Update Status</label>
               <select value={statusValue} onChange={(e) => setStatusValue(e.target.value)}>
