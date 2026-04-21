@@ -9,6 +9,8 @@ const defaultForm = {
   age_band: "70_79",
   vulnerable_adult_flag: true,
 
+  source_unit: "Downtown Branch",
+
   trusted_contact_exists: true,
   trusted_contact_name: "Michael Carter",
   trusted_contact_phone: "555-222-1188",
@@ -119,6 +121,16 @@ export default function NewCasePage() {
                 <option value="80_plus">80+</option>
                 <option value="unknown">Unknown</option>
               </select>
+            </div>
+
+            <div className="field-group">
+              <label>Source Unit</label>
+              <input
+                name="source_unit"
+                value={form.source_unit}
+                onChange={handleChange}
+                placeholder="Downtown Branch, Contact Center, Fraud Ops"
+              />
             </div>
 
             <label className="checkbox-row">

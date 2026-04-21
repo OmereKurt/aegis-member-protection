@@ -16,6 +16,8 @@ class ScamCaseIntakeRequest(BaseModel):
     age_band: AgeBand
     vulnerable_adult_flag: bool = False
 
+    source_unit: str = "Branch"
+
     trusted_contact_exists: bool = False
     trusted_contact_name: Optional[str] = None
     trusted_contact_phone: Optional[str] = None
@@ -82,6 +84,8 @@ class ScamCaseResponse(BaseModel):
     full_name: Optional[str] = None
     age_band: str
     vulnerable_adult_flag: bool
+
+    source_unit: str
 
     trusted_contact_exists: bool
     trusted_contact_name: Optional[str] = None

@@ -26,6 +26,8 @@ class ScamCase(Base):
     age_band = Column(String, nullable=False)
     vulnerable_adult_flag = Column(Boolean, nullable=False, default=False)
 
+    source_unit = Column(String, nullable=False, default="Branch")
+
     trusted_contact_exists = Column(Boolean, nullable=False, default=False)
     trusted_contact_name = Column(String, nullable=True)
     trusted_contact_phone = Column(String, nullable=True)

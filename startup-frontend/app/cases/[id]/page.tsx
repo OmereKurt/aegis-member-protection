@@ -181,6 +181,7 @@ export default function CaseDetailPage() {
               <p><strong>Created:</strong> {formatTimestamp(caseData.created_at)}</p>
               <p><strong>Updated:</strong> {formatTimestamp(caseData.updated_at)}</p>
               <p><strong>Urgency Score:</strong> {caseData.urgency_score}</p>
+              <p><strong>Source Unit:</strong> {caseData.source_unit}</p>
             </div>
 
             <div className="button-row">

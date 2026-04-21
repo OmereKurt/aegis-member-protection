@@ -66,6 +66,7 @@ def serialize_case(db: Session, case: ScamCase) -> dict:
         "full_name": case.full_name,
         "age_band": case.age_band,
         "vulnerable_adult_flag": case.vulnerable_adult_flag,
+        "source_unit": case.source_unit,
         "trusted_contact_exists": case.trusted_contact_exists,
         "trusted_contact_name": case.trusted_contact_name,
         "trusted_contact_phone": case.trusted_contact_phone,
@@ -114,6 +115,7 @@ def list_scam_cases():
                     "case_id": case.case_id,
                     "title": case.title,
                     "customer_identifier": case.customer_identifier,
+                    "source_unit": case.source_unit,
                     "scam_type": case.scam_type,
                     "urgency": case.urgency,
                     "status": case.status,
@@ -147,6 +149,7 @@ def create_scam_case(payload: ScamCaseIntakeRequest):
             full_name=payload.full_name,
             age_band=payload.age_band,
             vulnerable_adult_flag=payload.vulnerable_adult_flag,
+            source_unit=payload.source_unit,
             trusted_contact_exists=payload.trusted_contact_exists,
             trusted_contact_name=payload.trusted_contact_name,
             trusted_contact_phone=payload.trusted_contact_phone,
@@ -174,7 +177,7 @@ def create_scam_case(payload: ScamCaseIntakeRequest):
             db,
             scam_case.id,
             "case_created",
-            f"Case created with {scam_case.urgency} urgency and scam type {scam_case.scam_type}.",
+            f"Case created from {scam_case.source_unit} with {scam_case.urgency} urgency and scam type {scam_case.scam_type}.",
         )
 
         return serialize_case(db, scam_case)

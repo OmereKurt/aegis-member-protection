@@ -94,10 +94,12 @@ export default function HomePage() {
         const caseId = String(caseItem.case_id || "").toLowerCase();
         const customerIdentifier = String(caseItem.customer_identifier || "").toLowerCase();
         const title = String(caseItem.title || "").toLowerCase();
+        const sourceUnit = String(caseItem.source_unit || "").toLowerCase();
         return (
           caseId.includes(query) ||
           customerIdentifier.includes(query) ||
-          title.includes(query)
+          title.includes(query) ||
+          sourceUnit.includes(query)
         );
       });
     }
@@ -215,7 +217,7 @@ export default function HomePage() {
               <label>Search</label>
               <input
                 type="text"
-                placeholder="Search by case ID, member ID, or title"
+                placeholder="Search by case ID, member ID, title, or source unit"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -280,6 +282,7 @@ export default function HomePage() {
 
                 <div className="case-meta">
                   <p><strong>Member ID:</strong> {caseItem.customer_identifier}</p>
+                  <p><strong>Source Unit:</strong> {caseItem.source_unit}</p>
                   <p><strong>Case Type:</strong> {humanizeScamType(caseItem.scam_type)}</p>
                   <p><strong>Potential Loss:</strong> ${Number(caseItem.amount_at_risk || 0).toLocaleString()}</p>
                   <p><strong>Created:</strong> {formatTimestamp(caseItem.created_at)}</p>
