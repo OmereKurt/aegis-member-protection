@@ -24,6 +24,19 @@ function formatTimestamp(value: string | null | undefined) {
   return new Date(value).toLocaleString();
 }
 
+function humanizeScamType(value: string) {
+  const map: Record<string, string> = {
+    bank_imposter: "Bank Imposter",
+    government_imposter: "Government Imposter",
+    tech_support: "Tech Support",
+    family_emergency: "Family Emergency",
+    investment_crypto: "Investment / Crypto",
+    romance: "Romance",
+    unknown: "Unknown",
+  };
+  return map[value] || value;
+}
+
 export default function CaseDetailPage() {
   const params = useParams();
   const caseId = String(params.id);
@@ -132,14 +145,14 @@ export default function CaseDetailPage() {
   return (
     <main>
       <div className="page-header">
-        <h1>Case Workspace</h1>
+        <h1>Member Protection Case Workspace</h1>
         <p className="page-subtitle">
-          Work the case from intake through intervention and closure.
+          Review the member situation, guide the intervention, document staff handling, and record the final outcome.
         </p>
 
         <div className="nav-row">
           <a href="/">Back to Queue</a>
-          <a href="/cases/new">Create New Case</a>
+          <a href="/cases/new">Start New Intake</a>
         </div>
       </div>
 
@@ -162,9 +175,9 @@ export default function CaseDetailPage() {
             </div>
 
             <div className="case-meta" style={{ marginTop: "16px" }}>
-              <p><strong>Customer:</strong> {caseData.customer_identifier}</p>
-              <p><strong>Scam Type:</strong> {caseData.scam_type}</p>
-              <p><strong>Amount at Risk:</strong> ${Number(caseData.amount_at_risk || 0).toLocaleString()}</p>
+              <p><strong>Member ID:</strong> {caseData.customer_identifier}</p>
+              <p><strong>Case Type:</strong> {humanizeScamType(caseData.scam_type)}</p>
+              <p><strong>Potential Loss:</strong> ${Number(caseData.amount_at_risk || 0).toLocaleString()}</p>
               <p><strong>Created:</strong> {formatTimestamp(caseData.created_at)}</p>
               <p><strong>Updated:</strong> {formatTimestamp(caseData.updated_at)}</p>
               <p><strong>Urgency Score:</strong> {caseData.urgency_score}</p>
@@ -183,14 +196,14 @@ export default function CaseDetailPage() {
               )}
             </div>
 
-            <p style={{ marginTop: "14px" }}><strong>Summary:</strong> {caseData.summary}</p>
+            <p style={{ marginTop: "14px" }}><strong>Case Summary:</strong> {caseData.summary}</p>
           </div>
 
           <div className="card">
-            <h2>Immediate Next Actions</h2>
+            <h2>Immediate Staff Guidance</h2>
 
             <div className="summary-box" style={{ marginTop: "12px" }}>
-              <p><strong>Priority Guidance</strong></p>
+              <p><strong>Use these actions first</strong></p>
               <ul>
                 {caseData.playbook.recommended_actions.slice(0, 3).map((item: string, index: number) => (
                   <li key={index}>{item}</li>
@@ -199,19 +212,19 @@ export default function CaseDetailPage() {
 
               <div className="case-meta">
                 <p><strong>Escalation Required:</strong> {caseData.playbook.escalation_required ? "Yes" : "No"}</p>
-                <p><strong>Hold Recommended:</strong> {caseData.playbook.hold_recommended ? "Yes" : "No"}</p>
-                <p><strong>Trusted Contact Recommended:</strong> {caseData.playbook.trusted_contact_recommended ? "Yes" : "No"}</p>
-                <p><strong>Law Enforcement Reporting Recommended:</strong> {caseData.playbook.law_enforcement_reporting_recommended ? "Yes" : "No"}</p>
+                <p><strong>Transaction Hold Likely Needed:</strong> {caseData.playbook.hold_recommended ? "Yes" : "No"}</p>
+                <p><strong>Trusted Contact Outreach Recommended:</strong> {caseData.playbook.trusted_contact_recommended ? "Yes" : "No"}</p>
+                <p><strong>External Reporting May Be Needed:</strong> {caseData.playbook.law_enforcement_reporting_recommended ? "Yes" : "No"}</p>
               </div>
             </div>
           </div>
 
           <div className="card">
-            <h2>Customer Context</h2>
+            <h2>Member Context</h2>
             <div className="case-meta">
-              <p><strong>Full Name:</strong> {caseData.full_name || "Not provided"}</p>
+              <p><strong>Member Name:</strong> {caseData.full_name || "Not provided"}</p>
               <p><strong>Age Band:</strong> {caseData.age_band}</p>
-              <p><strong>Vulnerable Adult:</strong> {caseData.vulnerable_adult_flag ? "Yes" : "No"}</p>
+              <p><strong>Potentially Vulnerable Adult:</strong> {caseData.vulnerable_adult_flag ? "Yes" : "No"}</p>
               <p><strong>Trusted Contact Exists:</strong> {caseData.trusted_contact_exists ? "Yes" : "No"}</p>
               <p><strong>Trusted Contact Name:</strong> {caseData.trusted_contact_name || "Not provided"}</p>
               <p><strong>Trusted Contact Phone:</strong> {caseData.trusted_contact_phone || "Not provided"}</p>
@@ -219,44 +232,44 @@ export default function CaseDetailPage() {
           </div>
 
           <div className="card">
-            <h2>Event Details</h2>
+            <h2>Reported Event Details</h2>
             <div className="case-meta">
               <p><strong>Intake Channel:</strong> {caseData.intake_channel}</p>
               <p><strong>Transaction Type:</strong> {caseData.transaction_type}</p>
-              <p><strong>Money Already Left:</strong> {caseData.money_already_left ? "Yes" : "No"}</p>
+              <p><strong>Funds Already Left:</strong> {caseData.money_already_left ? "Yes" : "No"}</p>
               <p><strong>Live Contact with Scammer:</strong> {caseData.customer_currently_on_call_with_scammer ? "Yes" : "No"}</p>
               <p><strong>New Payee/Destination:</strong> {caseData.new_payee_or_destination ? "Yes" : "No"}</p>
-              <p><strong>Told to Keep Secret:</strong> {caseData.customer_told_to_keep_secret ? "Yes" : "No"}</p>
+              <p><strong>Secrecy Pressure:</strong> {caseData.customer_told_to_keep_secret ? "Yes" : "No"}</p>
             </div>
 
-            <p><strong>Narrative:</strong> {caseData.narrative}</p>
+            <p><strong>Staff Narrative:</strong> {caseData.narrative}</p>
           </div>
 
           <div className="card">
-            <h2>Urgency Reasoning</h2>
+            <h2>Urgency Rationale</h2>
 
-            <h3 className="section-title">Reasons</h3>
+            <h3 className="section-title">Why this case was prioritized this way</h3>
             <ul>
               {caseData.urgency_reasons.map((reason: string, index: number) => (
                 <li key={index}>{reason}</li>
               ))}
             </ul>
 
-            <h3 className="section-title">Risk Factors</h3>
+            <h3 className="section-title">Structured Risk Indicators</h3>
             <pre>{JSON.stringify(caseData.risk_factors, null, 2)}</pre>
           </div>
 
           <div className="card">
-            <h2>Intervention Playbook</h2>
+            <h2>Intervention Questions and Actions</h2>
 
-            <h3 className="section-title">Recommended Questions</h3>
+            <h3 className="section-title">Questions for the member</h3>
             <ul>
               {caseData.playbook.recommended_questions.map((item: string, index: number) => (
                 <li key={index}>{item}</li>
               ))}
             </ul>
 
-            <h3 className="section-title">Recommended Actions</h3>
+            <h3 className="section-title">Recommended staff actions</h3>
             <ul>
               {caseData.playbook.recommended_actions.map((item: string, index: number) => (
                 <li key={index}>{item}</li>
@@ -265,7 +278,7 @@ export default function CaseDetailPage() {
           </div>
 
           <div className="card">
-            <h2>Status Control</h2>
+            <h2>Case Status</h2>
             <div className="field-group" style={{ maxWidth: "320px", marginTop: "12px" }}>
               <label>Update Status</label>
               <select value={statusValue} onChange={(e) => setStatusValue(e.target.value)}>
@@ -284,7 +297,7 @@ export default function CaseDetailPage() {
           </div>
 
           <div className="card">
-            <h2>Notes</h2>
+            <h2>Staff Notes</h2>
             <div className="field-group" style={{ marginTop: "12px" }}>
               <label>Case Notes</label>
               <textarea value={notesValue} onChange={(e) => setNotesValue(e.target.value)} />
@@ -298,7 +311,7 @@ export default function CaseDetailPage() {
           </div>
 
           <div className="card">
-            <h2>Outcome / Closure</h2>
+            <h2>Case Resolution</h2>
 
             <div className="form-grid">
               <div className="field-group">
@@ -326,13 +339,13 @@ export default function CaseDetailPage() {
             </div>
 
             <div style={{ marginTop: "12px" }}>
-              <p><strong>Current Outcome:</strong> {caseData.outcome_type || "Not set"}</p>
-              <p><strong>Current Closure Notes:</strong> {caseData.closure_notes || "Not set"}</p>
+              <p><strong>Recorded Outcome:</strong> {caseData.outcome_type || "Not set"}</p>
+              <p><strong>Recorded Closure Notes:</strong> {caseData.closure_notes || "Not set"}</p>
             </div>
           </div>
 
           <div className="card">
-            <h2>Activity Timeline</h2>
+            <h2>Case Activity Timeline</h2>
 
             {caseData.action_logs.length === 0 ? (
               <p className="muted">No activity logged yet.</p>

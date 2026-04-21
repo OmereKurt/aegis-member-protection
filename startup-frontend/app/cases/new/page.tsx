@@ -23,7 +23,7 @@ const defaultForm = {
   customer_told_to_keep_secret: true,
 
   narrative:
-    "Customer stated a caller claiming to be from the bank fraud department instructed an urgent wire transfer to protect retirement funds.",
+    "Member stated a caller claiming to be from the bank fraud department instructed an urgent wire transfer to protect retirement funds.",
 
   phone_based_imposter_story: true,
   government_or_bank_brand_impersonation: true,
@@ -86,9 +86,9 @@ export default function NewCasePage() {
   return (
     <main>
       <div className="page-header">
-        <h1>New Case Intake</h1>
+        <h1>New Member Protection Intake</h1>
         <p className="page-subtitle">
-          Capture the suspicious event, classify the likely scam pattern, and generate the initial intervention workflow.
+          Capture a suspected elder financial exploitation event quickly so staff can assess urgency and intervene before funds move.
         </p>
 
         <div className="nav-row">
@@ -98,15 +98,15 @@ export default function NewCasePage() {
 
       <form onSubmit={handleSubmit} className="grid">
         <div className="card">
-          <h2>Customer Context</h2>
+          <h2>Member Context</h2>
           <div className="form-grid-2" style={{ marginTop: "16px" }}>
             <div className="field-group">
-              <label>Customer Identifier</label>
+              <label>Member Identifier</label>
               <input name="customer_identifier" value={form.customer_identifier} onChange={handleChange} />
             </div>
 
             <div className="field-group">
-              <label>Full Name</label>
+              <label>Member Name</label>
               <input name="full_name" value={form.full_name} onChange={handleChange} />
             </div>
 
@@ -128,7 +128,7 @@ export default function NewCasePage() {
                 checked={form.vulnerable_adult_flag}
                 onChange={handleChange}
               />
-              Vulnerable adult flag
+              Potentially vulnerable adult
             </label>
 
             <label className="checkbox-row">
@@ -138,7 +138,7 @@ export default function NewCasePage() {
                 checked={form.trusted_contact_exists}
                 onChange={handleChange}
               />
-              Trusted contact exists
+              Trusted contact available
             </label>
 
             <div className="field-group">
@@ -154,7 +154,7 @@ export default function NewCasePage() {
         </div>
 
         <div className="card">
-          <h2>Event Details</h2>
+          <h2>Suspicious Event Details</h2>
           <div className="form-grid-2" style={{ marginTop: "16px" }}>
             <div className="field-group">
               <label>Intake Channel</label>
@@ -183,7 +183,7 @@ export default function NewCasePage() {
             </div>
 
             <div className="field-group">
-              <label>Amount at Risk</label>
+              <label>Potential Loss Amount</label>
               <input
                 type="number"
                 name="amount_at_risk"
@@ -199,7 +199,7 @@ export default function NewCasePage() {
                 checked={form.money_already_left}
                 onChange={handleChange}
               />
-              Money already left
+              Funds may already have left
             </label>
 
             <label className="checkbox-row">
@@ -209,7 +209,7 @@ export default function NewCasePage() {
                 checked={form.customer_currently_on_call_with_scammer}
                 onChange={handleChange}
               />
-              Customer currently on call with scammer
+              Member may still be on the phone with the scammer
             </label>
 
             <label className="checkbox-row">
@@ -219,7 +219,7 @@ export default function NewCasePage() {
                 checked={form.new_payee_or_destination}
                 onChange={handleChange}
               />
-              New payee or destination
+              New payee or destination involved
             </label>
 
             <label className="checkbox-row">
@@ -229,18 +229,18 @@ export default function NewCasePage() {
                 checked={form.customer_told_to_keep_secret}
                 onChange={handleChange}
               />
-              Customer told to keep it secret
+              Member was told to keep this secret
             </label>
           </div>
 
           <div className="field-group" style={{ marginTop: "16px" }}>
-            <label>Narrative</label>
+            <label>Staff Narrative</label>
             <textarea name="narrative" value={form.narrative} onChange={handleChange} />
           </div>
         </div>
 
         <div className="card">
-          <h2>Risk Factors</h2>
+          <h2>Risk Indicators</h2>
           <div className="form-grid-2" style={{ marginTop: "16px" }}>
             <label className="checkbox-row">
               <input type="checkbox" name="phone_based_imposter_story" checked={form.phone_based_imposter_story} onChange={handleChange} />
@@ -249,12 +249,12 @@ export default function NewCasePage() {
 
             <label className="checkbox-row">
               <input type="checkbox" name="government_or_bank_brand_impersonation" checked={form.government_or_bank_brand_impersonation} onChange={handleChange} />
-              Government or bank brand impersonation
+              Bank or government impersonation
             </label>
 
             <label className="checkbox-row">
               <input type="checkbox" name="fear_or_urgency_language" checked={form.fear_or_urgency_language} onChange={handleChange} />
-              Fear or urgency language
+              Fear or urgency language used
             </label>
 
             <label className="checkbox-row">
@@ -264,17 +264,17 @@ export default function NewCasePage() {
 
             <label className="checkbox-row">
               <input type="checkbox" name="high_dollar_amount" checked={form.high_dollar_amount} onChange={handleChange} />
-              High-dollar amount
+              High-dollar loss potential
             </label>
 
             <label className="checkbox-row">
               <input type="checkbox" name="older_or_vulnerable_customer" checked={form.older_or_vulnerable_customer} onChange={handleChange} />
-              Older or vulnerable customer
+              Older or vulnerable member
             </label>
 
             <label className="checkbox-row">
               <input type="checkbox" name="repeat_attempt" checked={form.repeat_attempt} onChange={handleChange} />
-              Repeat attempt
+              Repeat or ongoing attempt
             </label>
 
             <label className="checkbox-row">
@@ -289,7 +289,7 @@ export default function NewCasePage() {
 
             <label className="checkbox-row">
               <input type="checkbox" name="romance_or_emotional_dependency_pattern" checked={form.romance_or_emotional_dependency_pattern} onChange={handleChange} />
-              Romance / emotional dependency pattern
+              Romance or emotional dependency pattern
             </label>
           </div>
         </div>

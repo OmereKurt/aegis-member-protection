@@ -23,6 +23,19 @@ function formatTimestamp(value: string | null | undefined) {
   return new Date(value).toLocaleString();
 }
 
+function humanizeScamType(value: string) {
+  const map: Record<string, string> = {
+    bank_imposter: "Bank Imposter",
+    government_imposter: "Government Imposter",
+    tech_support: "Tech Support",
+    family_emergency: "Family Emergency",
+    investment_crypto: "Investment / Crypto",
+    romance: "Romance",
+    unknown: "Unknown",
+  };
+  return map[value] || value;
+}
+
 export default function HomePage() {
   const [cases, setCases] = useState<any[]>([]);
   const [error, setError] = useState("");
@@ -141,36 +154,36 @@ export default function HomePage() {
   return (
     <main>
       <div className="page-header">
-        <h1>Scam Intervention Ops</h1>
+        <h1>Member Protection Operations</h1>
         <p className="page-subtitle">
-          Intake, triage, and manage suspected elder scam cases before funds leave the institution.
+          Intake, triage, and manage suspected elder financial exploitation cases so staff can intervene before funds leave the institution.
         </p>
 
         <div className="nav-row">
-          <a href="/cases/new">Create New Case</a>
+          <a href="/cases/new">Start New Intake</a>
         </div>
       </div>
 
       <div className="grid" style={{ gap: "24px" }}>
         <div className="stats-grid">
           <div className="card card-tight">
-            <p className="muted">Total Cases</p>
+            <p className="muted">Open + Closed Cases</p>
             <h2>{cases.length}</h2>
           </div>
           <div className="card card-tight">
-            <p className="muted">Low</p>
+            <p className="muted">Low Urgency</p>
             <h2><span className="badge badge-low">{urgencyCounts.low}</span></h2>
           </div>
           <div className="card card-tight">
-            <p className="muted">Medium</p>
+            <p className="muted">Medium Urgency</p>
             <h2><span className="badge badge-medium">{urgencyCounts.medium}</span></h2>
           </div>
           <div className="card card-tight">
-            <p className="muted">High</p>
+            <p className="muted">High Urgency</p>
             <h2><span className="badge badge-high">{urgencyCounts.high}</span></h2>
           </div>
           <div className="card card-tight">
-            <p className="muted">Critical</p>
+            <p className="muted">Critical Urgency</p>
             <h2><span className="badge badge-critical">{urgencyCounts.critical}</span></h2>
           </div>
         </div>
@@ -202,7 +215,7 @@ export default function HomePage() {
               <label>Search</label>
               <input
                 type="text"
-                placeholder="Search by case ID, customer, or title"
+                placeholder="Search by case ID, member ID, or title"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -231,9 +244,9 @@ export default function HomePage() {
             </div>
 
             <div className="field-group">
-              <label>Scam Type</label>
+              <label>Case Type</label>
               <select value={scamTypeFilter} onChange={(e) => setScamTypeFilter(e.target.value)}>
-                <option value="all">All scam types</option>
+                <option value="all">All case types</option>
                 <option value="bank_imposter">Bank Imposter</option>
                 <option value="government_imposter">Government Imposter</option>
                 <option value="tech_support">Tech Support</option>
@@ -266,14 +279,14 @@ export default function HomePage() {
                 </div>
 
                 <div className="case-meta">
-                  <p><strong>Customer:</strong> {caseItem.customer_identifier}</p>
-                  <p><strong>Scam Type:</strong> {caseItem.scam_type}</p>
-                  <p><strong>Amount at Risk:</strong> ${Number(caseItem.amount_at_risk || 0).toLocaleString()}</p>
+                  <p><strong>Member ID:</strong> {caseItem.customer_identifier}</p>
+                  <p><strong>Case Type:</strong> {humanizeScamType(caseItem.scam_type)}</p>
+                  <p><strong>Potential Loss:</strong> ${Number(caseItem.amount_at_risk || 0).toLocaleString()}</p>
                   <p><strong>Created:</strong> {formatTimestamp(caseItem.created_at)}</p>
                 </div>
 
                 <p className="muted">
-                  {caseItem.notes ? `Notes: ${caseItem.notes}` : "No notes yet."}
+                  {caseItem.notes ? `Case notes: ${caseItem.notes}` : "No case notes yet."}
                 </p>
 
                 <div className="button-row">
@@ -287,7 +300,7 @@ export default function HomePage() {
                       type="button"
                       onClick={() => quickUpdateStatus(caseItem.id, "In Review")}
                     >
-                      Mark In Review
+                      Move to Review
                     </button>
                   )}
 
