@@ -51,8 +51,8 @@ def get_case(case_id: int):
             "severity": case.severity,
             "score": case.score,
             "summary": case.summary,
-            "recommended_actions": 
-json.loads(case.recommended_actions_json),
+            "reasons": json.loads(case.reasons_json),
+            "recommended_actions": json.loads(case.recommended_actions_json),
             "normalized_alert": json.loads(case.normalized_alert_json),
             "enrichment": json.loads(case.enrichment_json)
         }

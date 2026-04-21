@@ -13,6 +13,7 @@ class Case(Base):
     severity = Column(String, nullable=False)
     score = Column(Integer, nullable=False)
     summary = Column(Text, nullable=False)
+    reasons_json = Column(Text, nullable=False)
     recommended_actions_json = Column(Text, nullable=False)
     normalized_alert_json = Column(Text, nullable=False)
     enrichment_json = Column(Text, nullable=False)

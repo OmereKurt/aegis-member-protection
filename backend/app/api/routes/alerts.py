@@ -20,6 +20,20 @@ def analyze_alert(raw_alert: SuspiciousLoginAlert):
     db: Session = SessionLocal()
 
     try:
+        existing_case = db.query(Case).filter(Case.alert_id == raw_alert.alert_id).first()
+
+        if existing_case:
+            return {
+                "alert_id": existing_case.alert_id,
+                "severity": existing_case.severity,
+                "score": existing_case.score,
+                "reasons": json.loads(existing_case.reasons_json),
+                "summary": existing_case.summary,
+                "recommended_actions": json.loads(existing_case.recommended_actions_json),
+                "normalized_alert": json.loads(existing_case.normalized_alert_json),
+                "enrichment": json.loads(existing_case.enrichment_json)
+            }
+
         normalized_alert = normalize_suspicious_login_alert(raw_alert)
 
         enrichment = enrich_ip(
@@ -39,6 +53,7 @@ def analyze_alert(raw_alert: SuspiciousLoginAlert):
             severity=score_result["severity"],
             score=score_result["score"],
             summary=summary_result["summary"],
+            reasons_json=json.dumps(score_result["reasons"]),
             recommended_actions_json=json.dumps(summary_result["recommended_actions"]),
             normalized_alert_json=json.dumps(normalized_alert),
             enrichment_json=json.dumps(enrichment)
