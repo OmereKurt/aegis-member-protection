@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 function getSeverityClass(severity: string) {
   const value = severity.toLowerCase();
@@ -48,6 +48,52 @@ export default function HomePage() {
 
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
+  const [cases, setCases] = useState<any[]>([]);
+  const [casesError, setCasesError] = useState("");
+
+  async function loadCases() {
+    try {
+      const response = await fetch("http://localhost:8000/api/cases");
+
+      if (!response.ok) {
+        throw new Error("Failed to load dashboard cases");
+      }
+
+      const data = await response.json();
+      setCases(data);
+      setCasesError("");
+    } catch (err: any) {
+      setCasesError(err.message || "Could not load dashboard");
+    }
+  }
+
+  useEffect(() => {
+    loadCases();
+  }, []);
+
+  const severityCounts = useMemo(() => {
+    const counts = {
+      low: 0,
+      medium: 0,
+      high: 0,
+      critical: 0,
+    };
+
+    for (const caseItem of cases) {
+      const severity = String(caseItem.severity || "").toLowerCase();
+
+      if (severity === "low") counts.low += 1;
+      else if (severity === "medium") counts.medium += 1;
+      else if (severity === "high") counts.high += 1;
+      else if (severity === "critical") counts.critical += 1;
+    }
+
+    return counts;
+  }, [cases]);
+
+  const latestCases = useMemo(() => {
+    return [...cases].slice(-5).reverse();
+  }, [cases]);
 
   function handleLoginChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { name, value, type, checked } = e.target;
@@ -101,6 +147,7 @@ export default function HomePage() {
 
       const data = await response.json();
       setResult(data);
+      await loadCases();
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     }
@@ -112,6 +159,55 @@ export default function HomePage() {
       <p className="muted">
         Submit a security alert and turn it into a triage-ready case.
       </p>
+
+      <div
+        style={{
+          display: "grid",
+          gap: "16px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          marginBottom: "24px",
+        }}
+      >
+        <div className="card">
+          <p className="muted">Total Cases</p>
+          <h2>{cases.length}</h2>
+        </div>
+        <div className="card">
+          <p className="muted">Low</p>
+          <h2><span className="badge badge-low">{severityCounts.low}</span></h2>
+        </div>
+        <div className="card">
+          <p className="muted">Medium</p>
+          <h2><span className="badge badge-medium">{severityCounts.medium}</span></h2>
+        </div>
+        <div className="card">
+          <p className="muted">High</p>
+          <h2><span className="badge badge-high">{severityCounts.high}</span></h2>
+        </div>
+        <div className="card">
+          <p className="muted">Critical</p>
+          <h2><span className="badge badge-critical">{severityCounts.critical}</span></h2>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: "24px" }}>
+        <h2>Latest Cases</h2>
+        {casesError && <p className="error">{casesError}</p>}
+        {!casesError && latestCases.length === 0 && <p className="muted">No cases yet.</p>}
+
+        <div className="case-list">
+          {latestCases.map((caseItem) => (
+            <div key={caseItem.id} style={{ borderTop: "1px solid #e5e7eb", paddingTop: "12px" }}>
+              <p><strong>{caseItem.title}</strong></p>
+              <p className="muted">Case #{caseItem.id}</p>
+              <p>
+                <span className={getSeverityClass(caseItem.severity)}>{caseItem.severity}</span>
+              </p>
+              <a href={`/cases/${caseItem.id}`}>Open Case</a>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="card">
         <div className="form-grid" style={{ marginBottom: "16px" }}>
