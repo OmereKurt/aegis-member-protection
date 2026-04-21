@@ -10,6 +10,12 @@ function getSeverityClass(severity: string) {
   return "badge badge-critical";
 }
 
+function getStatusClass(status: string) {
+  if (status === "Closed") return "badge badge-low";
+  if (status === "In Review") return "badge badge-medium";
+  return "badge badge-high";
+}
+
 export default function HomePage() {
   const [alertType, setAlertType] = useState("suspicious_login");
 
@@ -91,8 +97,26 @@ export default function HomePage() {
     return counts;
   }, [cases]);
 
+  const statusCounts = useMemo(() => {
+    const counts = {
+      new: 0,
+      inReview: 0,
+      closed: 0,
+    };
+
+    for (const caseItem of cases) {
+      const status = String(caseItem.status || "").toLowerCase();
+
+      if (status === "new") counts.new += 1;
+      else if (status === "in review") counts.inReview += 1;
+      else if (status === "closed") counts.closed += 1;
+    }
+
+    return counts;
+  }, [cases]);
+
   const latestCases = useMemo(() => {
-    return [...cases].slice(-5).reverse();
+    return [...cases].slice(0, 5);
   }, [cases]);
 
   function handleLoginChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -190,6 +214,28 @@ export default function HomePage() {
         </div>
       </div>
 
+      <div
+        style={{
+          display: "grid",
+          gap: "16px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          marginBottom: "24px",
+        }}
+      >
+        <div className="card">
+          <p className="muted">New</p>
+          <h2><span className={getStatusClass("New")}>{statusCounts.new}</span></h2>
+        </div>
+        <div className="card">
+          <p className="muted">In Review</p>
+          <h2><span className={getStatusClass("In Review")}>{statusCounts.inReview}</span></h2>
+        </div>
+        <div className="card">
+          <p className="muted">Closed</p>
+          <h2><span className={getStatusClass("Closed")}>{statusCounts.closed}</span></h2>
+        </div>
+      </div>
+
       <div className="card" style={{ marginBottom: "24px" }}>
         <h2>Latest Cases</h2>
         {casesError && <p className="error">{casesError}</p>}
@@ -199,9 +245,13 @@ export default function HomePage() {
           {latestCases.map((caseItem) => (
             <div key={caseItem.id} style={{ borderTop: "1px solid #e5e7eb", paddingTop: "12px" }}>
               <p><strong>{caseItem.title}</strong></p>
-              <p className="muted">Case #{caseItem.id}</p>
+              <p className="muted">Case #{caseItem.id} • Alert ID: {caseItem.alert_id}</p>
               <p>
-                <span className={getSeverityClass(caseItem.severity)}>{caseItem.severity}</span>
+                <span className={getSeverityClass(caseItem.severity)}>{caseItem.severity}</span>{" "}
+                <span className={getStatusClass(caseItem.status)}>{caseItem.status}</span>
+              </p>
+              <p className="muted">
+                {caseItem.notes ? `Notes: ${caseItem.notes}` : "No notes yet."}
               </p>
               <a href={`/cases/${caseItem.id}`}>Open Case</a>
             </div>

@@ -88,6 +88,8 @@ def analyze_alert(payload: AlertWrapper):
             title=normalized_alert["title"],
             severity=score_result["severity"],
             score=score_result["score"],
+            status="New",
+            notes="",
             summary=summary_result["summary"],
             reasons_json=json.dumps(score_result["reasons"]),
             recommended_actions_json=json.dumps(summary_result["recommended_actions"]),
