@@ -16,46 +16,89 @@ function getStatusClass(status: string) {
   return "badge badge-high";
 }
 
+const defaultLoginForm = {
+  alert_id: "alert-101",
+  source: "manual",
+  timestamp: "2026-04-21T15:00:00Z",
+  title: "Suspicious Login",
+  user_email: "user@company.com",
+  ip: "203.0.113.10",
+  country: "Netherlands",
+  city: "Amsterdam",
+  failed_logins_before_success: 7,
+  impossible_travel: true,
+  new_geo: true,
+  mfa_enabled: true,
+  vpn_or_hosting_asn: true,
+  privileged_user: false,
+};
+
+const defaultPhishingForm = {
+  alert_id: "alert-201",
+  source: "manual",
+  timestamp: "2026-04-21T16:00:00Z",
+  title: "Phishing Email",
+  recipient_email: "employee@company.com",
+  sender_email: "it-support@secure-helpdesk.com",
+  sender_domain: "secure-helpdesk.com",
+  subject: "Password Reset Required",
+  display_name_mismatch: true,
+  url_present: true,
+  attachment_present: false,
+  newly_registered_domain: true,
+  multiple_recipients: true,
+};
+
 export default function HomePage() {
+  const [isLoaded, setIsLoaded] = useState(false);
   const [alertType, setAlertType] = useState("suspicious_login");
 
-  const [loginForm, setLoginForm] = useState({
-    alert_id: "alert-101",
-    source: "manual",
-    timestamp: "2026-04-21T15:00:00Z",
-    title: "Suspicious Login",
-    user_email: "user@company.com",
-    ip: "203.0.113.10",
-    country: "Netherlands",
-    city: "Amsterdam",
-    failed_logins_before_success: 7,
-    impossible_travel: true,
-    new_geo: true,
-    mfa_enabled: true,
-    vpn_or_hosting_asn: true,
-    privileged_user: false,
-  });
-
-  const [phishingForm, setPhishingForm] = useState({
-    alert_id: "alert-201",
-    source: "manual",
-    timestamp: "2026-04-21T16:00:00Z",
-    title: "Phishing Email",
-    recipient_email: "employee@company.com",
-    sender_email: "it-support@secure-helpdesk.com",
-    sender_domain: "secure-helpdesk.com",
-    subject: "Password Reset Required",
-    display_name_mismatch: true,
-    url_present: true,
-    attachment_present: false,
-    newly_registered_domain: true,
-    multiple_recipients: true,
-  });
+  const [loginForm, setLoginForm] = useState(defaultLoginForm);
+  const [phishingForm, setPhishingForm] = useState(defaultPhishingForm);
 
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
   const [cases, setCases] = useState<any[]>([]);
   const [casesError, setCasesError] = useState("");
+
+  useEffect(() => {
+    const savedAlertType = localStorage.getItem("analyst_copilot_alert_type");
+    const savedLoginForm = localStorage.getItem("analyst_copilot_login_form");
+    const savedPhishingForm = localStorage.getItem("analyst_copilot_phishing_form");
+
+    if (savedAlertType) {
+      setAlertType(savedAlertType);
+    }
+
+    if (savedLoginForm) {
+      try {
+        setLoginForm(JSON.parse(savedLoginForm));
+      } catch {}
+    }
+
+    if (savedPhishingForm) {
+      try {
+        setPhishingForm(JSON.parse(savedPhishingForm));
+      } catch {}
+    }
+
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem("analyst_copilot_alert_type", alertType);
+  }, [alertType, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem("analyst_copilot_login_form", JSON.stringify(loginForm));
+  }, [loginForm, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem("analyst_copilot_phishing_form", JSON.stringify(phishingForm));
+  }, [phishingForm, isLoaded]);
 
   async function loadCases() {
     try {
@@ -138,6 +181,16 @@ export default function HomePage() {
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+  }
+
+  function resetCurrentForm() {
+    if (alertType === "suspicious_login") {
+      setLoginForm(defaultLoginForm);
+      localStorage.removeItem("analyst_copilot_login_form");
+    } else {
+      setPhishingForm(defaultPhishingForm);
+      localStorage.removeItem("analyst_copilot_phishing_form");
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -358,7 +411,10 @@ export default function HomePage() {
             </>
           )}
 
-          <button className="button" type="submit">Analyze Alert</button>
+          <div className="link-row">
+            <button className="button" type="submit">Analyze Alert</button>
+            <button className="button" type="button" onClick={resetCurrentForm}>Reset Current Form</button>
+          </div>
         </form>
 
         <div className="link-row">
