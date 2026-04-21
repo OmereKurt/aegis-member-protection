@@ -163,6 +163,7 @@ export default function HomePage() {
 
         <div className="nav-row">
           <a href="/cases/new">Start New Intake</a>
+          <a href="/reporting">View Reporting</a>
         </div>
       </div>
 

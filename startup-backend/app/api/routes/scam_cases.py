@@ -130,6 +130,48 @@ def list_scam_cases():
         db.close()
 
 
+@router.get("/summary")
+def get_scam_case_summary():
+    db: Session = SessionLocal()
+
+    try:
+        cases = db.query(ScamCase).all()
+
+        total_cases = len(cases)
+        open_cases = sum(1 for case in cases if case.status != "Closed")
+        closed_cases = sum(1 for case in cases if case.status == "Closed")
+
+        source_unit_counts = {}
+        outcome_counts = {}
+
+        protected_or_blocked = 0
+        funds_lost = 0
+
+        for case in cases:
+            source_unit = case.source_unit or "Unknown"
+            source_unit_counts[source_unit] = source_unit_counts.get(source_unit, 0) + 1
+
+            outcome = case.outcome_type or "unset"
+            outcome_counts[outcome] = outcome_counts.get(outcome, 0) + 1
+
+            if outcome in {"customer_protected", "funds_blocked"}:
+                protected_or_blocked += 1
+            elif outcome == "funds_lost":
+                funds_lost += 1
+
+        return {
+            "total_cases": total_cases,
+            "open_cases": open_cases,
+            "closed_cases": closed_cases,
+            "protected_or_blocked_cases": protected_or_blocked,
+            "funds_lost_cases": funds_lost,
+            "source_unit_counts": source_unit_counts,
+            "outcome_counts": outcome_counts,
+        }
+    finally:
+        db.close()
+
+
 @router.post("/intake", response_model=ScamCaseResponse)
 def create_scam_case(payload: ScamCaseIntakeRequest):
     db: Session = SessionLocal()
