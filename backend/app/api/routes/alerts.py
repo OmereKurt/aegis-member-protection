@@ -43,7 +43,7 @@ def analyze_alert(raw_alert: SuspiciousLoginAlert):
         )
 
         score_result = score_suspicious_login(normalized_alert)
-        summary_result = generate_summary(normalized_alert, score_result)
+        summary_result = generate_summary(normalized_alert, score_result, enrichment)
 
         db_case = Case(
             alert_id=normalized_alert["alert_id"],
