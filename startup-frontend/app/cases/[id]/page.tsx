@@ -276,6 +276,13 @@ export default function CaseDetailPage() {
                 <li key={index}>{item}</li>
               ))}
             </ul>
+
+            <h3 className="section-title">Recommended escalation path</h3>
+            <ul>
+              {(caseData.playbook.recommended_escalation_path || []).map((item: string, index: number) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
           </div>
 
           <div className="card">

@@ -111,7 +111,37 @@ def score_urgency(payload: ScamCaseIntakeRequest, risk_factors: dict) -> tuple[i
     return score, urgency, reasons
 
 
-def build_playbook(scam_type: str, urgency: str, risk_factors: dict) -> dict:
+def build_escalation_path(
+    scam_type: str,
+    urgency: str,
+    source_unit: str,
+    risk_factors: dict,
+) -> list[str]:
+    steps = []
+
+    normalized_source = source_unit.strip() if source_unit.strip() else "Source Unit"
+
+    steps.append(f"Document the concern within {normalized_source} and move the case into active review.")
+
+    if urgency in {"High", "Critical"}:
+        steps.append("Notify a supervisor or team lead immediately.")
+
+    if urgency in {"Medium", "High", "Critical"}:
+        steps.append("Route the case to Fraud Operations for review before funds move.")
+
+    if risk_factors["older_or_vulnerable_customer"]:
+        steps.append("Consider trusted contact outreach if institution policy allows it.")
+
+    if risk_factors["money_already_left"] or urgency == "Critical":
+        steps.append("Prioritize rapid loss-mitigation review and determine whether external reporting is needed.")
+
+    if scam_type in {"bank_imposter", "government_imposter", "investment_crypto"}:
+        steps.append("Escalate for enhanced fraud review because the narrative suggests a high-risk impersonation or funds-transfer scam.")
+
+    return steps
+
+
+def build_playbook(scam_type: str, urgency: str, risk_factors: dict, source_unit: str) -> dict:
     recommended_questions = [
         "Who contacted you and how?",
         "Did they ask you to keep this secret from family or bank staff?",
@@ -153,9 +183,17 @@ def build_playbook(scam_type: str, urgency: str, risk_factors: dict) -> dict:
         recommended_questions.append("Has someone you know online been asking for money or secrecy?")
         recommended_actions.append("Treat repeated emotional pressure and isolation as a serious risk factor")
 
+    recommended_escalation_path = build_escalation_path(
+        scam_type=scam_type,
+        urgency=urgency,
+        source_unit=source_unit,
+        risk_factors=risk_factors,
+    )
+
     return {
         "recommended_questions": recommended_questions,
         "recommended_actions": recommended_actions,
+        "recommended_escalation_path": recommended_escalation_path,
         "escalation_required": escalation_required,
         "hold_recommended": hold_recommended,
         "trusted_contact_recommended": trusted_contact_recommended,
@@ -192,7 +230,12 @@ def build_case_artifacts(payload: ScamCaseIntakeRequest) -> dict:
     risk_factors = extract_risk_factors(payload)
     scam_type = classify_scam_type(payload)
     urgency_score, urgency, urgency_reasons = score_urgency(payload, risk_factors)
-    playbook = build_playbook(scam_type, urgency, risk_factors)
+    playbook = build_playbook(
+        scam_type=scam_type,
+        urgency=urgency,
+        risk_factors=risk_factors,
+        source_unit=payload.source_unit,
+    )
     title, summary = build_title_and_summary(scam_type, urgency, payload.customer_identifier, payload.amount_at_risk)
 
     return {
