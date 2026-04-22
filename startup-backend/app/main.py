@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,11 +10,14 @@ from app.models import action_log, scam_case  # noqa: F401
 
 app = FastAPI(title="Scam Intervention Ops")
 
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        frontend_url,
     ],
     allow_credentials=True,
     allow_methods=["*"],
