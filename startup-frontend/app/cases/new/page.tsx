@@ -94,7 +94,7 @@ export default function NewCasePage() {
         </p>
 
         <div className="nav-row">
-          <a href="/">Back to Queue</a>
+          <a href="/ops">Back to Queue</a>
         </div>
       </div>
 
@@ -308,7 +308,7 @@ export default function NewCasePage() {
 
         <div className="button-row">
           <button className="button" type="submit">Create Case</button>
-          <a href="/">Cancel</a>
+          <a href="/ops">Cancel</a>
         </div>
 
         {error && <p className="error">{error}</p>}

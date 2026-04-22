@@ -35,7 +35,7 @@ export default function ReportingPage() {
         </p>
 
         <div className="nav-row">
-          <a href="/">Back to Queue</a>
+          <a href="/ops">Back to Queue</a>
           <a href="/cases/new">Start New Intake</a>
         </div>
       </div>
