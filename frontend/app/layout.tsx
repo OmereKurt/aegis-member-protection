@@ -1,9 +1,11 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Aegis Member Protection",
-  description: "Workflow software for member protection and elder financial exploitation case handling.",
+  description:
+    "Case operations software for suspected elder exploitation and member protection workflows.",
 };
 
 export default function RootLayout({
@@ -17,22 +19,26 @@ export default function RootLayout({
         <div className="app-shell">
           <header className="topbar">
             <div className="topbar-inner">
-              <a href="/" className="brand">
-                <div className="brand-mark">AM</div>
+              <Link href="/" className="brand">
+                <div className="brand-mark" aria-hidden="true">
+                  <span className="brand-mark-text">AM</span>
+                  <span className="brand-mark-accent">&gt;</span>
+                </div>
+
                 <div className="brand-text">
                   <div className="brand-title">Aegis Member Protection</div>
                   <div className="brand-subtitle">
-                    Operational workflow for suspected elder exploitation cases
+                    Case operations for suspected elder exploitation
                   </div>
                 </div>
-              </a>
+              </Link>
 
               <nav className="topnav">
-                <a href="/">Home</a>
-                <a href="/ops">Operations</a>
-                <a href="/reporting">Reporting</a>
-                <a href="/pilot">Design Partner</a>
-                <a href="/cases/new">New Intake</a>
+                <Link href="/">Home</Link>
+                <Link href="/ops">Workspace</Link>
+                <Link href="/reporting">Reporting</Link>
+                <Link href="/pilot">Pilot Program</Link>
+                <Link href="/cases/new">New Intake</Link>
               </nav>
             </div>
           </header>

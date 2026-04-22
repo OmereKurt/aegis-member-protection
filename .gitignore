@@ -44,3 +44,5 @@ Thumbs.db
 # temp files
 *.swp
 *.swo
+.vercel
+.env*.local

@@ -1,265 +1,421 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
-function humanizeOutcome(value: string) {
-  const map: Record<string, string> = {
-    customer_protected: "Customer Protected",
-    funds_blocked: "Funds Blocked",
-    funds_lost: "Funds Lost",
-    false_alarm: "False Alarm",
-    follow_up_required: "Follow Up Required",
-    unknown: "Unknown",
-    unset: "Not Yet Closed",
-  };
-  return map[value] || value;
-}
+type PeriodKey = "7d" | "30d" | "90d";
 
-function percentage(value: number, total: number) {
-  if (!total) return 0;
-  return Math.round((value / total) * 100);
+const reportingData = {
+  "7d": {
+    label: "Last 7 days",
+    totalCases: 42,
+    escalated: 11,
+    medianTriage: "13m",
+    closureRate: "71%",
+    sourceUnits: [
+      { label: "Branch network", value: 22, color: "blue" },
+      { label: "Contact center", value: 13, color: "green" },
+      { label: "Digital / self-service", value: 7, color: "amber" },
+    ],
+    riskMix: [
+      { label: "Critical", value: 6, color: "dark" },
+      { label: "High", value: 15, color: "red" },
+      { label: "Medium", value: 14, color: "amber" },
+      { label: "Low", value: 7, color: "green" },
+    ],
+    workflow: {
+      intake: 42,
+      review: 23,
+      escalated: 11,
+      closed: 30,
+    },
+    outcomes: [
+      { label: "Cases closed with intervention documented", value: "30" },
+      { label: "Cases requiring fraud or supervisor escalation", value: "11" },
+      { label: "Cases originating from branches", value: "52%" },
+      { label: "Median first-review time", value: "13m" },
+    ],
+    highlights: [
+      {
+        title: "Branch activity remains the largest source",
+        body: "Most case volume is still beginning at the branch level, which reinforces the need for strong source-unit visibility and structured handoff.",
+      },
+      {
+        title: "High-risk cases are moving faster",
+        body: "Median triage time remains low for escalated cases, which suggests the workflow is supporting earlier operator action.",
+      },
+      {
+        title: "Contact center volume is material",
+        body: "Contact center intake continues to represent a meaningful share of suspicious-case initiation and should stay visible in reporting.",
+      },
+    ],
+    bottlenecks: [
+      { label: "Waiting on member verification", value: 9 },
+      { label: "Supervisor review pending", value: 6 },
+      { label: "Fraud ops ownership transition", value: 4 },
+      { label: "Documentation completion", value: 3 },
+    ],
+  },
+  "30d": {
+    label: "Last 30 days",
+    totalCases: 168,
+    escalated: 39,
+    medianTriage: "15m",
+    closureRate: "74%",
+    sourceUnits: [
+      { label: "Branch network", value: 87, color: "blue" },
+      { label: "Contact center", value: 51, color: "green" },
+      { label: "Digital / self-service", value: 30, color: "amber" },
+    ],
+    riskMix: [
+      { label: "Critical", value: 18, color: "dark" },
+      { label: "High", value: 57, color: "red" },
+      { label: "Medium", value: 61, color: "amber" },
+      { label: "Low", value: 32, color: "green" },
+    ],
+    workflow: {
+      intake: 168,
+      review: 96,
+      escalated: 39,
+      closed: 124,
+    },
+    outcomes: [
+      { label: "Cases closed with intervention documented", value: "124" },
+      { label: "Cases requiring fraud or supervisor escalation", value: "39" },
+      { label: "Cases originating from branches", value: "52%" },
+      { label: "Median first-review time", value: "15m" },
+    ],
+    highlights: [
+      {
+        title: "Branch and contact center remain the primary feeders",
+        body: "Together they drive the majority of case volume, which makes cross-team workflow consistency a core reporting need.",
+      },
+      {
+        title: "Escalation volume is concentrated in high-risk cases",
+        body: "The workflow is surfacing which cases require supervisor or fraud handling without forcing everything into one queue.",
+      },
+      {
+        title: "Closure rate is strong, but review-stage capacity matters",
+        body: "The review bucket remains the place where case timing can slip if ownership is not clearly maintained.",
+      },
+    ],
+    bottlenecks: [
+      { label: "Waiting on member verification", value: 28 },
+      { label: "Supervisor review pending", value: 17 },
+      { label: "Fraud ops ownership transition", value: 12 },
+      { label: "Documentation completion", value: 9 },
+    ],
+  },
+  "90d": {
+    label: "Last 90 days",
+    totalCases: 472,
+    escalated: 108,
+    medianTriage: "17m",
+    closureRate: "76%",
+    sourceUnits: [
+      { label: "Branch network", value: 241, color: "blue" },
+      { label: "Contact center", value: 146, color: "green" },
+      { label: "Digital / self-service", value: 85, color: "amber" },
+    ],
+    riskMix: [
+      { label: "Critical", value: 46, color: "dark" },
+      { label: "High", value: 161, color: "red" },
+      { label: "Medium", value: 173, color: "amber" },
+      { label: "Low", value: 92, color: "green" },
+    ],
+    workflow: {
+      intake: 472,
+      review: 258,
+      escalated: 108,
+      closed: 359,
+    },
+    outcomes: [
+      { label: "Cases closed with intervention documented", value: "359" },
+      { label: "Cases requiring fraud or supervisor escalation", value: "108" },
+      { label: "Cases originating from branches", value: "51%" },
+      { label: "Median first-review time", value: "17m" },
+    ],
+    highlights: [
+      {
+        title: "The workflow is creating consistent source-unit visibility",
+        body: "Management can see where cases begin, where they escalate, and how outcomes distribute across the operating model.",
+      },
+      {
+        title: "High and critical cases remain a substantial share",
+        body: "This supports the need for a dedicated case-handling workflow rather than generic case notes or fragmented spreadsheets.",
+      },
+      {
+        title: "Operational reporting is exposing review-stage friction",
+        body: "The most important management value is not only the totals, but where the queue slows and where interventions cluster.",
+      },
+    ],
+    bottlenecks: [
+      { label: "Waiting on member verification", value: 76 },
+      { label: "Supervisor review pending", value: 41 },
+      { label: "Fraud ops ownership transition", value: 28 },
+      { label: "Documentation completion", value: 19 },
+    ],
+  },
+} as const;
+
+function sum(items: Array<{ value: number }>) {
+  return items.reduce((acc, item) => acc + item.value, 0);
 }
 
 export default function ReportingPage() {
-  const [summary, setSummary] = useState<any>(null);
-  const [error, setError] = useState("");
+  const [period, setPeriod] = useState<PeriodKey>("30d");
 
-  useEffect(() => {
-    async function loadSummary() {
-      try {
-        const response = await fetch("/backend/api/scam-cases/summary");
+  const data = reportingData[period];
 
-        if (!response.ok) {
-          throw new Error("Failed to load reporting summary");
-        }
+  const totalSource = useMemo(() => sum(data.sourceUnits), [data]);
+  const totalRisk = useMemo(() => sum(data.riskMix), [data]);
 
-        const data = await response.json();
-        setSummary(data);
-        setError("");
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
-      }
-    }
-
-    loadSummary();
-  }, []);
-
-  const sourceUnitRows = useMemo(() => {
-    if (!summary) return [];
-    const entries = Object.entries(summary.source_unit_counts || {}) as [string, number][];
-    return entries.sort((a, b) => b[1] - a[1]);
-  }, [summary]);
-
-  const outcomeRows = useMemo(() => {
-    if (!summary) return [];
-    const entries = Object.entries(summary.outcome_counts || {}) as [string, number][];
-    return entries.sort((a, b) => b[1] - a[1]);
-  }, [summary]);
-
-  const maxSourceCount = useMemo(() => {
-    if (!sourceUnitRows.length) return 1;
-    return Math.max(...sourceUnitRows.map(([, count]) => count), 1);
-  }, [sourceUnitRows]);
-
-  const maxOutcomeCount = useMemo(() => {
-    if (!outcomeRows.length) return 1;
-    return Math.max(...outcomeRows.map(([, count]) => count), 1);
-  }, [outcomeRows]);
+  const reviewPct = Math.round((data.workflow.review / data.workflow.intake) * 100);
+  const escalatedPct = Math.round(
+    (data.workflow.escalated / data.workflow.intake) * 100
+  );
+  const closedPct = Math.round((data.workflow.closed / data.workflow.intake) * 100);
 
   return (
-    <main className="page-wrap">
-      <div className="page-header">
-        <div className="page-kicker">Management Reporting</div>
-        <h1 className="page-title">Operational Reporting</h1>
+    <main className="page-wrap reporting-page-wrap">
+      <section className="page-header">
+        <div className="page-kicker">Management reporting</div>
+        <h1 className="page-title">Operational reporting</h1>
         <p className="page-subtitle">
-          Review case volume, source-unit distribution, and member protection outcomes across the workflow.
+          Review case volume, source-unit distribution, workflow progression,
+          and member protection outcomes across the operating model.
         </p>
+      </section>
 
-        <div className="nav-row" style={{ marginTop: "16px" }}>
-          <a href="/ops">Back to Operations</a>
-          <a href="/cases/new">Start New Intake</a>
+      <section className="report-toolbar">
+        <div className="report-periods">
+          <button
+            type="button"
+            className={period === "7d" ? "report-pill is-active" : "report-pill"}
+            onClick={() => setPeriod("7d")}
+          >
+            Last 7 days
+          </button>
+          <button
+            type="button"
+            className={period === "30d" ? "report-pill is-active" : "report-pill"}
+            onClick={() => setPeriod("30d")}
+          >
+            Last 30 days
+          </button>
+          <button
+            type="button"
+            className={period === "90d" ? "report-pill is-active" : "report-pill"}
+            onClick={() => setPeriod("90d")}
+          >
+            Last 90 days
+          </button>
         </div>
-      </div>
 
-      {error && <p className="error">{error}</p>}
-      {!summary && !error && <p className="muted">Loading reporting summary...</p>}
+        <div className="button-row">
+          <a href="/ops" className="button button-secondary">
+            Back to Workspace
+          </a>
+          <a href="/cases/new" className="button">
+            Start New Intake
+          </a>
+        </div>
+      </section>
 
-      {summary && (
-        <div className="grid" style={{ gap: "22px" }}>
-          <div className="kpi-strip">
-            <div className="kpi-card">
-              <div className="kpi-label">Total Cases</div>
-              <div className="kpi-value">{summary.total_cases}</div>
-              <div className="kpi-foot">All recorded cases in the workflow</div>
-            </div>
-            <div className="kpi-card">
-              <div className="kpi-label">Open Cases</div>
-              <div className="kpi-value">{summary.open_cases}</div>
-              <div className="kpi-foot">Cases not yet closed</div>
-            </div>
-            <div className="kpi-card">
-              <div className="kpi-label">Closed Cases</div>
-              <div className="kpi-value">{summary.closed_cases}</div>
-              <div className="kpi-foot">Cases with recorded outcomes</div>
-            </div>
-            <div className="kpi-card">
-              <div className="kpi-label">Protected / Blocked</div>
-              <div className="kpi-value">{summary.protected_or_blocked_cases}</div>
-              <div className="kpi-foot">Members protected before full loss</div>
-            </div>
-            <div className="kpi-card">
-              <div className="kpi-label">Funds Lost</div>
-              <div className="kpi-value">{summary.funds_lost_cases}</div>
-              <div className="kpi-foot">Cases where loss was recorded</div>
-            </div>
+      <section className="kpi-strip">
+        <div className="kpi-card">
+          <div className="kpi-label">Case volume</div>
+          <div className="kpi-value">{data.totalCases}</div>
+          <div className="kpi-foot">{data.label}</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">Escalated cases</div>
+          <div className="kpi-value">{data.escalated}</div>
+          <div className="kpi-foot">Supervisor or fraud review</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">Median triage time</div>
+          <div className="kpi-value">{data.medianTriage}</div>
+          <div className="kpi-foot">From intake to first review</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">Closure rate</div>
+          <div className="kpi-value">{data.closureRate}</div>
+          <div className="kpi-foot">Documented closure completion</div>
+        </div>
+      </section>
+
+      <section className="chart-grid">
+        <div className="chart-card">
+          <h3>Source-unit distribution</h3>
+          <p>Where suspected exploitation cases are entering the workflow.</p>
+
+          <div className="bar-list">
+            {data.sourceUnits.map((item) => {
+              const pct = Math.round((item.value / totalSource) * 100);
+              return (
+                <div className="bar-row" key={item.label}>
+                  <div className="bar-label-row">
+                    <div className="bar-label">{item.label}</div>
+                    <div className="bar-value">
+                      {item.value} cases · {pct}%
+                    </div>
+                  </div>
+                  <div className="bar-track">
+                    <div
+                      className={`bar-fill ${item.color}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
+        </div>
 
-          <div className="visual-summary-grid">
-            <div className="progress-card">
-              <h3>Protection Snapshot</h3>
-              <p>Quick readout of current case resolution mix.</p>
+        <div className="chart-card">
+          <h3>Risk mix</h3>
+          <p>Distribution of cases by current assessed risk level.</p>
 
-              <div className="dual-progress">
-                <div className="dual-progress-row">
-                  <div className="dual-progress-label">
-                    <span>Open vs Closed</span>
-                    <span>
-                      {summary.open_cases} / {summary.closed_cases}
-                    </span>
+          <div className="bar-list">
+            {data.riskMix.map((item) => {
+              const pct = Math.round((item.value / totalRisk) * 100);
+              return (
+                <div className="bar-row" key={item.label}>
+                  <div className="bar-label-row">
+                    <div className="bar-label">{item.label}</div>
+                    <div className="bar-value">
+                      {item.value} cases · {pct}%
+                    </div>
                   </div>
-                  <div className="stacked-track">
+                  <div className="bar-track">
                     <div
-                      className="stacked-segment stacked-blue"
-                      style={{
-                        width: `${percentage(summary.open_cases, summary.total_cases || 1)}%`,
-                      }}
-                    />
-                    <div
-                      className="stacked-segment stacked-green"
-                      style={{
-                        width: `${percentage(summary.closed_cases, summary.total_cases || 1)}%`,
-                      }}
+                      className={`bar-fill ${item.color}`}
+                      style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>
-
-                <div className="dual-progress-row">
-                  <div className="dual-progress-label">
-                    <span>Protected / Blocked vs Lost</span>
-                    <span>
-                      {summary.protected_or_blocked_cases} / {summary.funds_lost_cases}
-                    </span>
-                  </div>
-                  <div className="stacked-track">
-                    <div
-                      className="stacked-segment stacked-green"
-                      style={{
-                        width: `${percentage(
-                          summary.protected_or_blocked_cases,
-                          summary.protected_or_blocked_cases + summary.funds_lost_cases || 1
-                        )}%`,
-                      }}
-                    />
-                    <div
-                      className="stacked-segment stacked-red"
-                      style={{
-                        width: `${percentage(
-                          summary.funds_lost_cases,
-                          summary.protected_or_blocked_cases + summary.funds_lost_cases || 1
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="ops-surface">
-              <div className="ops-toolbar-title">
-                <h2>Management Snapshot</h2>
-                <p>High-level questions a manager usually wants answered fast.</p>
-              </div>
-
-              <div className="snapshot-list" style={{ marginTop: "16px" }}>
-                <div className="snapshot-item">
-                  <div className="snapshot-item-icon">1</div>
-                  <div className="snapshot-item-text">
-                    <strong>Where is case volume coming from?</strong>
-                    <span>Use source-unit charts to identify which operational areas generate the most activity.</span>
-                  </div>
-                </div>
-
-                <div className="snapshot-item">
-                  <div className="snapshot-item-icon">2</div>
-                  <div className="snapshot-item-text">
-                    <strong>How are cases resolving?</strong>
-                    <span>Track whether cases are ending in protection, blocked funds, loss, or unresolved states.</span>
-                  </div>
-                </div>
-
-                <div className="snapshot-item">
-                  <div className="snapshot-item-icon">3</div>
-                  <div className="snapshot-item-text">
-                    <strong>What needs attention now?</strong>
-                    <span>Compare open, closed, and loss outcomes to spot where the workflow needs strengthening.</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
+        </div>
+      </section>
 
-          <div className="chart-grid">
-            <div className="chart-card">
-              <h3>Cases by Source Unit</h3>
-              <p>Which operational areas are generating the most case volume.</p>
+      <section className="reporting-grid">
+        <div className="progress-card">
+          <h3>Workflow progression</h3>
+          <p>
+            This view shows how cases are moving through intake, review,
+            escalation, and closure.
+          </p>
 
-              <div className="bar-list">
-                {sourceUnitRows.map(([unit, count]) => (
-                  <div key={unit} className="bar-row">
-                    <div className="bar-label-row">
-                      <span className="bar-label">{unit}</span>
-                      <span className="bar-value">{count}</span>
-                    </div>
-                    <div className="bar-track">
-                      <div
-                        className="bar-fill"
-                        style={{ width: `${Math.max((count / maxSourceCount) * 100, 8)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+          <div className="dual-progress">
+            <div className="dual-progress-row">
+              <div className="dual-progress-label">
+                <span>Review stage</span>
+                <span>{reviewPct}% of intake</span>
+              </div>
+              <div className="stacked-track">
+                <div
+                  className="stacked-segment stacked-blue"
+                  style={{ width: `${reviewPct}%` }}
+                />
               </div>
             </div>
 
-            <div className="chart-card">
-              <h3>Cases by Outcome</h3>
-              <p>How cases are resolving across the current workflow.</p>
+            <div className="dual-progress-row">
+              <div className="dual-progress-label">
+                <span>Escalated</span>
+                <span>{escalatedPct}% of intake</span>
+              </div>
+              <div className="stacked-track">
+                <div
+                  className="stacked-segment stacked-red"
+                  style={{ width: `${escalatedPct}%` }}
+                />
+              </div>
+            </div>
 
-              <div className="bar-list">
-                {outcomeRows.map(([outcome, count], index) => {
-                  const colorClass =
-                    index % 4 === 0 ? "green" : index % 4 === 1 ? "amber" : index % 4 === 2 ? "red" : "dark";
-
-                  return (
-                    <div key={outcome} className="bar-row">
-                      <div className="bar-label-row">
-                        <span className="bar-label">{humanizeOutcome(outcome)}</span>
-                        <span className="bar-value">{count}</span>
-                      </div>
-                      <div className="bar-track">
-                        <div
-                          className={`bar-fill ${colorClass}`}
-                          style={{ width: `${Math.max((count / maxOutcomeCount) * 100, 8)}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="dual-progress-row">
+              <div className="dual-progress-label">
+                <span>Closed</span>
+                <span>{closedPct}% of intake</span>
+              </div>
+              <div className="stacked-track">
+                <div
+                  className="stacked-segment stacked-green"
+                  style={{ width: `${closedPct}%` }}
+                />
               </div>
             </div>
           </div>
         </div>
-      )}
+
+        <div className="workspace-panel">
+          <h3 className="workspace-section-title">Management outcomes</h3>
+          <div className="reporting-list">
+            {data.outcomes.map((item) => (
+              <div className="reporting-row" key={item.label}>
+                <div className="reporting-row-label">{item.label}</div>
+                <div className="reporting-row-value">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="visual-summary-grid">
+        <div className="workspace-panel">
+          <h3 className="workspace-section-title">Management highlights</h3>
+          <div className="snapshot-list">
+            {data.highlights.map((item, index) => (
+              <div className="snapshot-item" key={item.title}>
+                <div className="snapshot-item-icon">{index + 1}</div>
+                <div className="snapshot-item-text">
+                  <strong>{item.title}</strong>
+                  <span>{item.body}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="workspace-panel">
+          <h3 className="workspace-section-title">Current bottlenecks</h3>
+          <div className="bar-list">
+            {data.bottlenecks.map((item, index) => {
+              const max = Math.max(...data.bottlenecks.map((b) => b.value));
+              const pct = Math.round((item.value / max) * 100);
+
+              const color =
+                index === 0
+                  ? "red"
+                  : index === 1
+                  ? "amber"
+                  : index === 2
+                  ? "blue"
+                  : "green";
+
+              return (
+                <div className="bar-row" key={item.label}>
+                  <div className="bar-label-row">
+                    <div className="bar-label">{item.label}</div>
+                    <div className="bar-value">{item.value}</div>
+                  </div>
+                  <div className="bar-track">
+                    <div
+                      className={`bar-fill ${color}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
