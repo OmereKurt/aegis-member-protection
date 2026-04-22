@@ -21,7 +21,9 @@ export default function RootLayout({
                 <div className="brand-mark">AM</div>
                 <div className="brand-text">
                   <div className="brand-title">Aegis Member Protection</div>
-                  <div className="brand-subtitle">Operational workflow for suspected elder exploitation cases</div>
+                  <div className="brand-subtitle">
+                    Operational workflow for suspected elder exploitation cases
+                  </div>
                 </div>
               </a>
 
@@ -29,6 +31,7 @@ export default function RootLayout({
                 <a href="/">Home</a>
                 <a href="/ops">Operations</a>
                 <a href="/reporting">Reporting</a>
+                <a href="/pilot">Design Partner</a>
                 <a href="/cases/new">New Intake</a>
               </nav>
             </div>
