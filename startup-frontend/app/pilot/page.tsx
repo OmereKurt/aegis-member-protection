@@ -36,7 +36,7 @@ export default function PilotPage() {
             </div>
             <div className="highlight-stat">
               <div className="highlight-stat-label">Primary outcome</div>
-              <div className="highlight-stat-value">Better handling consistency</div>
+              <div className="highlight-stat-value">Handling consistency</div>
             </div>
             <div className="highlight-stat">
               <div className="highlight-stat-label">Best buyers</div>
@@ -143,14 +143,20 @@ export default function PilotPage() {
       </section>
 
       <section className="section">
-        <h2 className="section-title">Current stage</h2>
-        <p className="section-subtitle">
-          Early product, focused on workflow design and operational fit. Right now the goal is not broad rollout — it is finding strong design partners and tightening the workflow.
-        </p>
+        <div className="cta-banner">
+          <h2>Current stage: early product, focused on workflow fit</h2>
+          <p>
+            The goal right now is not broad rollout. The goal is finding strong design partners and tightening the workflow with the right operational teams.
+          </p>
 
-        <div className="hero-actions">
-          <a href="/ops" className="button">Open Product Workspace</a>
-          <a href="/" className="button button-secondary">Back to Home</a>
+          <div className="hero-actions">
+            <a href="/ops" className="button">Open Product Workspace</a>
+            <a href="/" className="button button-secondary">Back to Home</a>
+          </div>
+
+          <div className="cta-mini-note">
+            Best fit: institutions that want a more consistent member protection handling process.
+          </div>
         </div>
       </section>
     </main>
