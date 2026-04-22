@@ -101,7 +101,6 @@ Current priorities are:
 
 ## Repository Structure
 
-```text
 aegis-member-protection/
 ├── backend/        # FastAPI backend
 ├── frontend/       # Next.js frontend
@@ -109,7 +108,8 @@ aegis-member-protection/
 ├── legacy/         # Archived prototype files kept for reference
 ├── .gitignore
 └── README.md
-Getting Started
+
+## Getting Started
 Prerequisites
 
 Make sure you have:
