@@ -65,7 +65,7 @@ export default function CaseDetailPage() {
 
   async function loadCase() {
     try {
-      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}`);
+      const response = await fetch(`/backend/api/scam-cases/${caseId}`);
       if (!response.ok) throw new Error("Failed to load case");
 
       const data = await response.json();
@@ -89,7 +89,7 @@ export default function CaseDetailPage() {
 
   async function saveStatus() {
     try {
-      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/status`, {
+      const response = await fetch(`/backend/api/scam-cases/${caseId}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: statusValue }),
@@ -103,7 +103,7 @@ export default function CaseDetailPage() {
 
   async function saveNotes() {
     try {
-      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/notes`, {
+      const response = await fetch(`/backend/api/scam-cases/${caseId}/notes`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: notesValue }),
@@ -117,7 +117,7 @@ export default function CaseDetailPage() {
 
   async function saveAssignment() {
     try {
-      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/assignment`, {
+      const response = await fetch(`/backend/api/scam-cases/${caseId}/assignment`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -139,7 +139,7 @@ export default function CaseDetailPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/close`, {
+      const response = await fetch(`/backend/api/scam-cases/${caseId}/close`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -157,7 +157,7 @@ export default function CaseDetailPage() {
   async function quickStatus(status: string) {
     setStatusValue(status);
     try {
-      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/status`, {
+      const response = await fetch(`/backend/api/scam-cases/${caseId}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),

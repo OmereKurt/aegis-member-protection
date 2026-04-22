@@ -66,7 +66,7 @@ export default function NewCasePage() {
     setError("");
 
     try {
-      const response = await fetch("http://localhost:8000/api/scam-cases/intake", {
+      const response = await fetch("/backend/api/scam-cases/intake", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

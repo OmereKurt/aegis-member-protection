@@ -47,7 +47,7 @@ export default function OpsPage() {
 
   async function loadCases() {
     try {
-      const response = await fetch("http://localhost:8000/api/scam-cases/");
+      const response = await fetch("/backend/api/scam-cases/");
 
       if (!response.ok) {
         throw new Error("Failed to load cases");
@@ -67,7 +67,7 @@ export default function OpsPage() {
 
   async function quickUpdateStatus(caseId: number, status: string) {
     try {
-      const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}/status`, {
+      const response = await fetch(`/backend/api/scam-cases/${caseId}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

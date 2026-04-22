@@ -17,3 +17,8 @@ frontend/out/
 
 # macOS
 .DS_Store
+
+# startup demo local files
+startup-frontend/.env.local
+startup-backend/startup_scam_ops.db
+.vercel

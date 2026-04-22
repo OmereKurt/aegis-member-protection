@@ -27,7 +27,7 @@ export default function ReportingPage() {
   useEffect(() => {
     async function loadSummary() {
       try {
-        const response = await fetch("http://localhost:8000/api/scam-cases/summary");
+        const response = await fetch("/backend/api/scam-cases/summary");
 
         if (!response.ok) {
           throw new Error("Failed to load reporting summary");
