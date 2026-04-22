@@ -37,6 +37,19 @@ function humanizeScamType(value: string) {
   return map[value] || value;
 }
 
+function humanizeOutcome(value: string | null | undefined) {
+  if (!value) return "Not set";
+  const map: Record<string, string> = {
+    customer_protected: "Customer Protected",
+    funds_blocked: "Funds Blocked",
+    funds_lost: "Funds Lost",
+    false_alarm: "False Alarm",
+    follow_up_required: "Follow Up Required",
+    unknown: "Unknown",
+  };
+  return map[value] || value;
+}
+
 export default function CaseDetailPage() {
   const params = useParams();
   const caseId = String(params.id);
@@ -53,10 +66,7 @@ export default function CaseDetailPage() {
   async function loadCase() {
     try {
       const response = await fetch(`http://localhost:8000/api/scam-cases/${caseId}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to load case");
-      }
+      if (!response.ok) throw new Error("Failed to load case");
 
       const data = await response.json();
       setCaseData(data);
@@ -84,7 +94,6 @@ export default function CaseDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: statusValue }),
       });
-
       if (!response.ok) throw new Error("Failed to update status");
       await loadCase();
     } catch (err: any) {
@@ -99,7 +108,6 @@ export default function CaseDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: notesValue }),
       });
-
       if (!response.ok) throw new Error("Failed to update notes");
       await loadCase();
     } catch (err: any) {
@@ -117,7 +125,6 @@ export default function CaseDetailPage() {
           assigned_team: assignedTeamValue || null,
         }),
       });
-
       if (!response.ok) throw new Error("Failed to update assignment");
       await loadCase();
     } catch (err: any) {
@@ -140,7 +147,6 @@ export default function CaseDetailPage() {
           closure_notes: closureNotesValue,
         }),
       });
-
       if (!response.ok) throw new Error("Failed to close case");
       await loadCase();
     } catch (err: any) {
@@ -156,7 +162,6 @@ export default function CaseDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-
       if (!response.ok) throw new Error("Failed to update status");
       await loadCase();
     } catch (err: any) {
@@ -165,15 +170,16 @@ export default function CaseDetailPage() {
   }
 
   return (
-    <main>
+    <main className="page-wrap">
       <div className="page-header">
-        <h1>Member Protection Case Workspace</h1>
+        <div className="page-kicker">Case Workspace</div>
+        <h1 className="page-title">Member Protection Case</h1>
         <p className="page-subtitle">
-          Review the member situation, guide the intervention, document staff handling, and record the final outcome.
+          Review the case, coordinate the team response, document staff actions, and record the final outcome.
         </p>
 
-        <div className="nav-row">
-          <a href="/ops">Back to Queue</a>
+        <div className="nav-row" style={{ marginTop: "16px" }}>
+          <a href="/ops">Back to Operations</a>
           <a href="/cases/new">Start New Intake</a>
         </div>
       </div>
@@ -182,245 +188,331 @@ export default function CaseDetailPage() {
       {!caseData && !error && <p className="muted">Loading case...</p>}
 
       {caseData && (
-        <div className="grid">
-          <div className="card">
-            <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
-              <div>
-                <h2>{caseData.title}</h2>
-                <p className="muted">{caseData.case_id}</p>
+        <div className="workspace-grid">
+          <div className="workspace-column">
+            <section className="workspace-hero">
+              <div className="workspace-title-row">
+                <div className="workspace-title-block">
+                  <h2>{caseData.title}</h2>
+                  <div className="muted">{caseData.case_id}</div>
+                </div>
+
+                <div className="inline-badge-row">
+                  <span className={urgencyClass(caseData.urgency)}>{caseData.urgency}</span>
+                  <span className={statusClass(caseData.status)}>{caseData.status}</span>
+                </div>
               </div>
 
-              <div className="nav-row" style={{ marginTop: 0 }}>
-                <span className={urgencyClass(caseData.urgency)}>{caseData.urgency}</span>
-                <span className={statusClass(caseData.status)}>{caseData.status}</span>
+              <div className="workspace-meta-grid">
+                <div className="workspace-meta-item">
+                  <div className="label">Member ID</div>
+                  <div className="value">{caseData.customer_identifier}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Case Type</div>
+                  <div className="value">{humanizeScamType(caseData.scam_type)}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Potential Loss</div>
+                  <div className="value">${Number(caseData.amount_at_risk || 0).toLocaleString()}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Source Unit</div>
+                  <div className="value">{caseData.source_unit}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Assigned Owner</div>
+                  <div className="value">{caseData.assigned_owner || "Unassigned"}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Assigned Team</div>
+                  <div className="value">{caseData.assigned_team || "Unassigned"}</div>
+                </div>
               </div>
-            </div>
 
-            <div className="case-meta" style={{ marginTop: "16px" }}>
-              <p><strong>Member ID:</strong> {caseData.customer_identifier}</p>
-              <p><strong>Case Type:</strong> {humanizeScamType(caseData.scam_type)}</p>
-              <p><strong>Potential Loss:</strong> ${Number(caseData.amount_at_risk || 0).toLocaleString()}</p>
-              <p><strong>Created:</strong> {formatTimestamp(caseData.created_at)}</p>
-              <p><strong>Updated:</strong> {formatTimestamp(caseData.updated_at)}</p>
-              <p><strong>Urgency Score:</strong> {caseData.urgency_score}</p>
-              <p><strong>Source Unit:</strong> {caseData.source_unit}</p>
-              <p><strong>Assigned Owner:</strong> {caseData.assigned_owner || "Unassigned"}</p>
-              <p><strong>Assigned Team:</strong> {caseData.assigned_team || "Unassigned"}</p>
-            </div>
+              <div className="button-row" style={{ marginTop: "18px" }}>
+                {caseData.status !== "In Review" && caseData.status !== "Closed" && (
+                  <button className="button" type="button" onClick={() => quickStatus("In Review")}>
+                    Take Into Review
+                  </button>
+                )}
+                {caseData.status !== "Escalated" && caseData.status !== "Closed" && (
+                  <button className="button button-secondary" type="button" onClick={() => quickStatus("Escalated")}>
+                    Escalate Now
+                  </button>
+                )}
+              </div>
 
-            <div className="button-row">
-              {caseData.status !== "In Review" && caseData.status !== "Closed" && (
-                <button className="button" type="button" onClick={() => quickStatus("In Review")}>
-                  Take Into Review
-                </button>
+              <div className="workspace-callout" style={{ marginTop: "18px" }}>
+                <strong>Case Summary</strong>
+                <p style={{ margin: "8px 0 0" }}>{caseData.summary}</p>
+              </div>
+            </section>
+
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Immediate Staff Guidance</h3>
+              <p className="workspace-subtle">
+                Use the recommended actions and escalation path below to standardize the next steps.
+              </p>
+
+              <div className="workspace-stack">
+                <div className="readonly-box">
+                  <strong>Priority actions</strong>
+                  <ul className="workspace-list">
+                    {caseData.playbook.recommended_actions.slice(0, 3).map((item: string, index: number) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="workspace-meta-grid">
+                  <div className="workspace-meta-item">
+                    <div className="label">Escalation Required</div>
+                    <div className="value">{caseData.playbook.escalation_required ? "Yes" : "No"}</div>
+                  </div>
+                  <div className="workspace-meta-item">
+                    <div className="label">Hold Likely Needed</div>
+                    <div className="value">{caseData.playbook.hold_recommended ? "Yes" : "No"}</div>
+                  </div>
+                  <div className="workspace-meta-item">
+                    <div className="label">Trusted Contact Outreach</div>
+                    <div className="value">{caseData.playbook.trusted_contact_recommended ? "Yes" : "No"}</div>
+                  </div>
+                  <div className="workspace-meta-item">
+                    <div className="label">External Reporting</div>
+                    <div className="value">{caseData.playbook.law_enforcement_reporting_recommended ? "Yes" : "No"}</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Intervention Questions and Actions</h3>
+
+              <div className="workspace-stack">
+                <div className="readonly-box">
+                  <strong>Questions for the member</strong>
+                  <ul className="workspace-list">
+                    {caseData.playbook.recommended_questions.map((item: string, index: number) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="readonly-box">
+                  <strong>Recommended escalation path</strong>
+                  <ul className="workspace-list">
+                    {(caseData.playbook.recommended_escalation_path || []).map((item: string, index: number) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Reported Event Details</h3>
+
+              <div className="workspace-meta-grid">
+                <div className="workspace-meta-item">
+                  <div className="label">Intake Channel</div>
+                  <div className="value">{caseData.intake_channel}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Transaction Type</div>
+                  <div className="value">{caseData.transaction_type}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Funds Already Left</div>
+                  <div className="value">{caseData.money_already_left ? "Yes" : "No"}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Live Contact with Scammer</div>
+                  <div className="value">{caseData.customer_currently_on_call_with_scammer ? "Yes" : "No"}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">New Payee / Destination</div>
+                  <div className="value">{caseData.new_payee_or_destination ? "Yes" : "No"}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Secrecy Pressure</div>
+                  <div className="value">{caseData.customer_told_to_keep_secret ? "Yes" : "No"}</div>
+                </div>
+              </div>
+
+              <div className="readonly-box" style={{ marginTop: "16px" }}>
+                <strong>Staff narrative</strong>
+                <p style={{ margin: "8px 0 0" }}>{caseData.narrative}</p>
+              </div>
+            </section>
+
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Case Activity Timeline</h3>
+
+              {caseData.action_logs.length === 0 ? (
+                <p className="muted">No activity logged yet.</p>
+              ) : (
+                <div className="timeline-list">
+                  {caseData.action_logs.map((log: any) => (
+                    <div key={log.id} className="timeline-item">
+                      <div className="timeline-item-title">{log.action_type}</div>
+                      <div className="timeline-item-time">{formatTimestamp(log.created_at)}</div>
+                      <div>{log.details}</div>
+                    </div>
+                  ))}
+                </div>
               )}
-              {caseData.status !== "Escalated" && caseData.status !== "Closed" && (
-                <button className="button button-secondary" type="button" onClick={() => quickStatus("Escalated")}>
-                  Escalate Now
+            </section>
+          </div>
+
+          <div className="workspace-column">
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Assignment</h3>
+              <p className="workspace-subtle">Set case ownership and team routing.</p>
+
+              <div className="form-grid-2">
+                <div className="field-group">
+                  <label>Assigned Owner</label>
+                  <input
+                    value={assignedOwnerValue}
+                    onChange={(e) => setAssignedOwnerValue(e.target.value)}
+                    placeholder="Taylor Smith"
+                  />
+                </div>
+
+                <div className="field-group">
+                  <label>Assigned Team</label>
+                  <input
+                    value={assignedTeamValue}
+                    onChange={(e) => setAssignedTeamValue(e.target.value)}
+                    placeholder="Fraud Operations"
+                  />
+                </div>
+              </div>
+
+              <div className="button-row" style={{ marginTop: "14px" }}>
+                <button className="button" type="button" onClick={saveAssignment}>
+                  Save Assignment
                 </button>
-              )}
-            </div>
-
-            <p style={{ marginTop: "14px" }}><strong>Case Summary:</strong> {caseData.summary}</p>
-          </div>
-
-          <div className="card">
-            <h2>Immediate Staff Guidance</h2>
-
-            <div className="summary-box" style={{ marginTop: "12px" }}>
-              <p><strong>Use these actions first</strong></p>
-              <ul>
-                {caseData.playbook.recommended_actions.slice(0, 3).map((item: string, index: number) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-
-              <div className="case-meta">
-                <p><strong>Escalation Required:</strong> {caseData.playbook.escalation_required ? "Yes" : "No"}</p>
-                <p><strong>Transaction Hold Likely Needed:</strong> {caseData.playbook.hold_recommended ? "Yes" : "No"}</p>
-                <p><strong>Trusted Contact Outreach Recommended:</strong> {caseData.playbook.trusted_contact_recommended ? "Yes" : "No"}</p>
-                <p><strong>External Reporting May Be Needed:</strong> {caseData.playbook.law_enforcement_reporting_recommended ? "Yes" : "No"}</p>
               </div>
-            </div>
-          </div>
+            </section>
 
-          <div className="card">
-            <h2>Assignment</h2>
-            <div className="form-grid-2" style={{ marginTop: "12px" }}>
-              <div className="field-group">
-                <label>Assigned Owner</label>
-                <input
-                  value={assignedOwnerValue}
-                  onChange={(e) => setAssignedOwnerValue(e.target.value)}
-                  placeholder="Taylor Smith"
-                />
-              </div>
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Case Status</h3>
+              <p className="workspace-subtle">Track the current handling stage.</p>
 
               <div className="field-group">
-                <label>Assigned Team</label>
-                <input
-                  value={assignedTeamValue}
-                  onChange={(e) => setAssignedTeamValue(e.target.value)}
-                  placeholder="Fraud Operations"
-                />
-              </div>
-            </div>
-
-            <div className="button-row">
-              <button className="button" type="button" onClick={saveAssignment}>
-                Save Assignment
-              </button>
-            </div>
-          </div>
-
-          <div className="card">
-            <h2>Member Context</h2>
-            <div className="case-meta">
-              <p><strong>Member Name:</strong> {caseData.full_name || "Not provided"}</p>
-              <p><strong>Age Band:</strong> {caseData.age_band}</p>
-              <p><strong>Potentially Vulnerable Adult:</strong> {caseData.vulnerable_adult_flag ? "Yes" : "No"}</p>
-              <p><strong>Trusted Contact Exists:</strong> {caseData.trusted_contact_exists ? "Yes" : "No"}</p>
-              <p><strong>Trusted Contact Name:</strong> {caseData.trusted_contact_name || "Not provided"}</p>
-              <p><strong>Trusted Contact Phone:</strong> {caseData.trusted_contact_phone || "Not provided"}</p>
-            </div>
-          </div>
-
-          <div className="card">
-            <h2>Reported Event Details</h2>
-            <div className="case-meta">
-              <p><strong>Intake Channel:</strong> {caseData.intake_channel}</p>
-              <p><strong>Transaction Type:</strong> {caseData.transaction_type}</p>
-              <p><strong>Funds Already Left:</strong> {caseData.money_already_left ? "Yes" : "No"}</p>
-              <p><strong>Live Contact with Scammer:</strong> {caseData.customer_currently_on_call_with_scammer ? "Yes" : "No"}</p>
-              <p><strong>New Payee/Destination:</strong> {caseData.new_payee_or_destination ? "Yes" : "No"}</p>
-              <p><strong>Secrecy Pressure:</strong> {caseData.customer_told_to_keep_secret ? "Yes" : "No"}</p>
-            </div>
-
-            <p><strong>Staff Narrative:</strong> {caseData.narrative}</p>
-          </div>
-
-          <div className="card">
-            <h2>Urgency Rationale</h2>
-
-            <h3 className="section-title">Why this case was prioritized this way</h3>
-            <ul>
-              {caseData.urgency_reasons.map((reason: string, index: number) => (
-                <li key={index}>{reason}</li>
-              ))}
-            </ul>
-
-            <h3 className="section-title">Structured Risk Indicators</h3>
-            <pre>{JSON.stringify(caseData.risk_factors, null, 2)}</pre>
-          </div>
-
-          <div className="card">
-            <h2>Intervention Questions and Actions</h2>
-
-            <h3 className="section-title">Questions for the member</h3>
-            <ul>
-              {caseData.playbook.recommended_questions.map((item: string, index: number) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-
-            <h3 className="section-title">Recommended staff actions</h3>
-            <ul>
-              {caseData.playbook.recommended_actions.map((item: string, index: number) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-
-            <h3 className="section-title">Recommended escalation path</h3>
-            <ul>
-              {(caseData.playbook.recommended_escalation_path || []).map((item: string, index: number) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="card">
-            <h2>Case Status</h2>
-            <div className="field-group" style={{ maxWidth: "320px", marginTop: "12px" }}>
-              <label>Update Status</label>
-              <select value={statusValue} onChange={(e) => setStatusValue(e.target.value)}>
-                <option value="New">New</option>
-                <option value="In Review">In Review</option>
-                <option value="Escalated">Escalated</option>
-                <option value="Closed">Closed</option>
-              </select>
-            </div>
-
-            <div className="button-row">
-              <button className="button" type="button" onClick={saveStatus}>
-                Save Status
-              </button>
-            </div>
-          </div>
-
-          <div className="card">
-            <h2>Staff Notes</h2>
-            <div className="field-group" style={{ marginTop: "12px" }}>
-              <label>Case Notes</label>
-              <textarea value={notesValue} onChange={(e) => setNotesValue(e.target.value)} />
-            </div>
-
-            <div className="button-row">
-              <button className="button" type="button" onClick={saveNotes}>
-                Save Notes
-              </button>
-            </div>
-          </div>
-
-          <div className="card">
-            <h2>Case Resolution</h2>
-
-            <div className="form-grid">
-              <div className="field-group">
-                <label>Outcome Type</label>
-                <select value={outcomeValue} onChange={(e) => setOutcomeValue(e.target.value)}>
-                  <option value="customer_protected">Customer Protected</option>
-                  <option value="funds_blocked">Funds Blocked</option>
-                  <option value="funds_lost">Funds Lost</option>
-                  <option value="false_alarm">False Alarm</option>
-                  <option value="follow_up_required">Follow Up Required</option>
-                  <option value="unknown">Unknown</option>
+                <label>Update Status</label>
+                <select value={statusValue} onChange={(e) => setStatusValue(e.target.value)}>
+                  <option value="New">New</option>
+                  <option value="In Review">In Review</option>
+                  <option value="Escalated">Escalated</option>
+                  <option value="Closed">Closed</option>
                 </select>
               </div>
 
+              <div className="button-row" style={{ marginTop: "14px" }}>
+                <button className="button" type="button" onClick={saveStatus}>
+                  Save Status
+                </button>
+              </div>
+            </section>
+
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Member Context</h3>
+
+              <div className="workspace-meta-grid">
+                <div className="workspace-meta-item">
+                  <div className="label">Member Name</div>
+                  <div className="value">{caseData.full_name || "Not provided"}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Age Band</div>
+                  <div className="value">{caseData.age_band}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Potentially Vulnerable Adult</div>
+                  <div className="value">{caseData.vulnerable_adult_flag ? "Yes" : "No"}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Trusted Contact Exists</div>
+                  <div className="value">{caseData.trusted_contact_exists ? "Yes" : "No"}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Trusted Contact Name</div>
+                  <div className="value">{caseData.trusted_contact_name || "Not provided"}</div>
+                </div>
+                <div className="workspace-meta-item">
+                  <div className="label">Trusted Contact Phone</div>
+                  <div className="value">{caseData.trusted_contact_phone || "Not provided"}</div>
+                </div>
+              </div>
+            </section>
+
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Urgency Rationale</h3>
+
+              <div className="readonly-box">
+                <strong>Urgency score: {caseData.urgency_score}</strong>
+                <ul className="workspace-list" style={{ marginTop: "10px" }}>
+                  {caseData.urgency_reasons.map((reason: string, index: number) => (
+                    <li key={index}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Staff Notes</h3>
               <div className="field-group">
-                <label>Closure Notes</label>
-                <textarea value={closureNotesValue} onChange={(e) => setClosureNotesValue(e.target.value)} />
+                <label>Case Notes</label>
+                <textarea value={notesValue} onChange={(e) => setNotesValue(e.target.value)} />
               </div>
-            </div>
 
-            <div className="button-row">
-              <button className="button" type="button" onClick={closeCase}>
-                Close Case
-              </button>
-            </div>
-
-            <div style={{ marginTop: "12px" }}>
-              <p><strong>Recorded Outcome:</strong> {caseData.outcome_type || "Not set"}</p>
-              <p><strong>Recorded Closure Notes:</strong> {caseData.closure_notes || "Not set"}</p>
-            </div>
-          </div>
-
-          <div className="card">
-            <h2>Case Activity Timeline</h2>
-
-            {caseData.action_logs.length === 0 ? (
-              <p className="muted">No activity logged yet.</p>
-            ) : (
-              <div className="case-list">
-                {caseData.action_logs.map((log: any) => (
-                  <div key={log.id} className="summary-box">
-                    <p><strong>{log.action_type}</strong></p>
-                    <p className="muted">{formatTimestamp(log.created_at)}</p>
-                    <p>{log.details}</p>
-                  </div>
-                ))}
+              <div className="button-row" style={{ marginTop: "14px" }}>
+                <button className="button" type="button" onClick={saveNotes}>
+                  Save Notes
+                </button>
               </div>
-            )}
+            </section>
+
+            <section className="workspace-panel">
+              <h3 className="workspace-section-title">Case Resolution</h3>
+              <p className="workspace-subtle">Record the final outcome and closure notes.</p>
+
+              <div className="form-grid">
+                <div className="field-group">
+                  <label>Outcome Type</label>
+                  <select value={outcomeValue} onChange={(e) => setOutcomeValue(e.target.value)}>
+                    <option value="customer_protected">Customer Protected</option>
+                    <option value="funds_blocked">Funds Blocked</option>
+                    <option value="funds_lost">Funds Lost</option>
+                    <option value="false_alarm">False Alarm</option>
+                    <option value="follow_up_required">Follow Up Required</option>
+                    <option value="unknown">Unknown</option>
+                  </select>
+                </div>
+
+                <div className="field-group">
+                  <label>Closure Notes</label>
+                  <textarea value={closureNotesValue} onChange={(e) => setClosureNotesValue(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="button-row" style={{ marginTop: "14px" }}>
+                <button className="button" type="button" onClick={closeCase}>
+                  Close Case
+                </button>
+              </div>
+
+              <div className="readonly-box" style={{ marginTop: "16px" }}>
+                <strong>Recorded outcome</strong>
+                <p style={{ margin: "8px 0 0" }}>{humanizeOutcome(caseData.outcome_type)}</p>
+                <p style={{ margin: "8px 0 0" }}>
+                  <strong>Recorded closure notes:</strong> {caseData.closure_notes || "Not set"}
+                </p>
+              </div>
+            </section>
           </div>
         </div>
       )}
