@@ -163,7 +163,7 @@ export default function OpsPage() {
         <div className="page-kicker">Operations Workspace</div>
         <h1 className="page-title">Member Protection Operations</h1>
         <p className="page-subtitle">
-          Intake, triage, and manage suspected elder financial exploitation cases so staff can intervene before funds leave the institution.
+          Review active member protection cases, update workflow status, and coordinate escalation across source units and teams.
         </p>
 
         <div className="nav-row" style={{ marginTop: "16px" }}>
@@ -172,168 +172,179 @@ export default function OpsPage() {
         </div>
       </div>
 
-      <div className="grid" style={{ gap: "24px" }}>
-        <div className="stats-grid">
-          <div className="card card-tight">
-            <p className="muted">Open + Closed Cases</p>
-            <h2>{cases.length}</h2>
+      <div className="kpi-strip">
+        <div className="kpi-card">
+          <div className="kpi-label">Total Cases</div>
+          <div className="kpi-value">{cases.length}</div>
+          <div className="kpi-foot">All open and closed records</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">New / In Review</div>
+          <div className="kpi-value">{statusCounts.new + statusCounts.inReview}</div>
+          <div className="kpi-foot">Cases currently in active handling</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Escalated</div>
+          <div className="kpi-value">{statusCounts.escalated}</div>
+          <div className="kpi-foot">Cases escalated for higher-touch review</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Critical Urgency</div>
+          <div className="kpi-value">{urgencyCounts.critical}</div>
+          <div className="kpi-foot">Most urgent cases requiring rapid intervention</div>
+        </div>
+      </div>
+
+      <div className="ops-toolbar ops-surface" style={{ marginTop: "22px" }}>
+        <div className="ops-toolbar-top">
+          <div className="ops-toolbar-title">
+            <h2>Case Queue</h2>
+            <p>Search, filter, and work active cases across branches, contact center, and fraud operations.</p>
           </div>
-          <div className="card card-tight">
-            <p className="muted">Low Urgency</p>
-            <h2><span className="badge badge-low">{urgencyCounts.low}</span></h2>
-          </div>
-          <div className="card card-tight">
-            <p className="muted">Medium Urgency</p>
-            <h2><span className="badge badge-medium">{urgencyCounts.medium}</span></h2>
-          </div>
-          <div className="card card-tight">
-            <p className="muted">High Urgency</p>
-            <h2><span className="badge badge-high">{urgencyCounts.high}</span></h2>
-          </div>
-          <div className="card card-tight">
-            <p className="muted">Critical Urgency</p>
-            <h2><span className="badge badge-critical">{urgencyCounts.critical}</span></h2>
+
+          <div className="inline-badge-row">
+            <span className="badge badge-status-new">New {statusCounts.new}</span>
+            <span className="badge badge-status-review">In Review {statusCounts.inReview}</span>
+            <span className="badge badge-status-escalated">Escalated {statusCounts.escalated}</span>
+            <span className="badge badge-status-closed">Closed {statusCounts.closed}</span>
           </div>
         </div>
 
-        <div className="stats-grid">
-          <div className="card card-tight">
-            <p className="muted">New</p>
-            <h2><span className="badge badge-status-new">{statusCounts.new}</span></h2>
+        <div className="ops-filter-grid">
+          <div className="field-group">
+            <label>Search</label>
+            <input
+              type="text"
+              placeholder="Case ID, member, title, source unit, owner, or team"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <div className="card card-tight">
-            <p className="muted">In Review</p>
-            <h2><span className="badge badge-status-review">{statusCounts.inReview}</span></h2>
+
+          <div className="field-group">
+            <label>Status</label>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">All statuses</option>
+              <option value="new">New</option>
+              <option value="in review">In Review</option>
+              <option value="escalated">Escalated</option>
+              <option value="closed">Closed</option>
+            </select>
           </div>
-          <div className="card card-tight">
-            <p className="muted">Escalated</p>
-            <h2><span className="badge badge-status-escalated">{statusCounts.escalated}</span></h2>
+
+          <div className="field-group">
+            <label>Urgency</label>
+            <select value={urgencyFilter} onChange={(e) => setUrgencyFilter(e.target.value)}>
+              <option value="all">All urgencies</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
           </div>
-          <div className="card card-tight">
-            <p className="muted">Closed</p>
-            <h2><span className="badge badge-status-closed">{statusCounts.closed}</span></h2>
+
+          <div className="field-group">
+            <label>Case Type</label>
+            <select value={scamTypeFilter} onChange={(e) => setScamTypeFilter(e.target.value)}>
+              <option value="all">All case types</option>
+              <option value="bank_imposter">Bank Imposter</option>
+              <option value="government_imposter">Government Imposter</option>
+              <option value="tech_support">Tech Support</option>
+              <option value="family_emergency">Family Emergency</option>
+              <option value="investment_crypto">Investment / Crypto</option>
+              <option value="romance">Romance</option>
+              <option value="unknown">Unknown</option>
+            </select>
           </div>
         </div>
 
-        <div className="card">
-          <h2>Case Queue</h2>
+        <p className="muted" style={{ marginTop: "6px" }}>
+          Showing {filteredCases.length} of {cases.length} cases
+        </p>
+      </div>
 
-          <div className="form-grid-2" style={{ marginTop: "16px" }}>
-            <div className="field-group">
-              <label>Search</label>
-              <input
-                type="text"
-                placeholder="Search by case ID, member ID, title, source unit, owner, or team"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+      {error && <p className="error">{error}</p>}
+
+      <div className="ops-surface" style={{ marginTop: "18px" }}>
+        <div className="queue-table-wrap">
+          <table className="queue-table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Source</th>
+                <th>Ownership</th>
+                <th>Urgency / Status</th>
+                <th>Potential Loss</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCases.map((caseItem) => (
+                <tr key={caseItem.id}>
+                  <td>
+                    <div className="queue-title">
+                      <strong>{caseItem.title}</strong>
+                      <span className="queue-subtext">{caseItem.case_id}</span>
+                      <span className="queue-subtext">
+                        Member: {caseItem.customer_identifier} • {humanizeScamType(caseItem.scam_type)}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <strong>{caseItem.source_unit}</strong>
+                  </td>
+                  <td>
+                    <div className="queue-title">
+                      <strong>{caseItem.assigned_owner || "Unassigned"}</strong>
+                      <span className="queue-subtext">{caseItem.assigned_team || "No team assigned"}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="inline-badge-row">
+                      <span className={urgencyClass(caseItem.urgency)}>{caseItem.urgency}</span>
+                      <span className={statusClass(caseItem.status)}>{caseItem.status}</span>
+                    </div>
+                  </td>
+                  <td>${Number(caseItem.amount_at_risk || 0).toLocaleString()}</td>
+                  <td>{formatTimestamp(caseItem.created_at)}</td>
+                  <td>
+                    <div className="button-row">
+                      <a href={`/cases/${caseItem.id}`} className="button">
+                        Open
+                      </a>
+
+                      {String(caseItem.status) !== "In Review" && String(caseItem.status) !== "Closed" && (
+                        <button
+                          className="button button-secondary"
+                          type="button"
+                          onClick={() => quickUpdateStatus(caseItem.id, "In Review")}
+                        >
+                          Review
+                        </button>
+                      )}
+
+                      {String(caseItem.status) !== "Escalated" && String(caseItem.status) !== "Closed" && (
+                        <button
+                          className="button button-secondary"
+                          type="button"
+                          onClick={() => quickUpdateStatus(caseItem.id, "Escalated")}
+                        >
+                          Escalate
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {!error && filteredCases.length === 0 && (
+            <div className="summary-box" style={{ marginTop: "16px" }}>
+              <p>No cases matched your filters.</p>
             </div>
-
-            <div className="field-group">
-              <label>Status</label>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                <option value="all">All statuses</option>
-                <option value="new">New</option>
-                <option value="in review">In Review</option>
-                <option value="escalated">Escalated</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
-
-            <div className="field-group">
-              <label>Urgency</label>
-              <select value={urgencyFilter} onChange={(e) => setUrgencyFilter(e.target.value)}>
-                <option value="all">All urgencies</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-
-            <div className="field-group">
-              <label>Case Type</label>
-              <select value={scamTypeFilter} onChange={(e) => setScamTypeFilter(e.target.value)}>
-                <option value="all">All case types</option>
-                <option value="bank_imposter">Bank Imposter</option>
-                <option value="government_imposter">Government Imposter</option>
-                <option value="tech_support">Tech Support</option>
-                <option value="family_emergency">Family Emergency</option>
-                <option value="investment_crypto">Investment / Crypto</option>
-                <option value="romance">Romance</option>
-                <option value="unknown">Unknown</option>
-              </select>
-            </div>
-          </div>
-
-          <p className="muted" style={{ marginTop: "16px" }}>
-            Showing {filteredCases.length} of {cases.length} cases
-          </p>
-
-          {error && <p className="error">{error}</p>}
-
-          <div className="case-list">
-            {filteredCases.map((caseItem) => (
-              <div key={caseItem.id} className="summary-box">
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap" }}>
-                  <div>
-                    <p><strong>{caseItem.title}</strong></p>
-                    <p className="muted">Case ID: {caseItem.case_id}</p>
-                  </div>
-                  <div className="nav-row" style={{ marginTop: 0 }}>
-                    <span className={urgencyClass(caseItem.urgency)}>{caseItem.urgency}</span>
-                    <span className={statusClass(caseItem.status)}>{caseItem.status}</span>
-                  </div>
-                </div>
-
-                <div className="case-meta">
-                  <p><strong>Member ID:</strong> {caseItem.customer_identifier}</p>
-                  <p><strong>Source Unit:</strong> {caseItem.source_unit}</p>
-                  <p><strong>Assigned Owner:</strong> {caseItem.assigned_owner || "Unassigned"}</p>
-                  <p><strong>Assigned Team:</strong> {caseItem.assigned_team || "Unassigned"}</p>
-                  <p><strong>Case Type:</strong> {humanizeScamType(caseItem.scam_type)}</p>
-                  <p><strong>Potential Loss:</strong> ${Number(caseItem.amount_at_risk || 0).toLocaleString()}</p>
-                  <p><strong>Created:</strong> {formatTimestamp(caseItem.created_at)}</p>
-                </div>
-
-                <p className="muted">
-                  {caseItem.notes ? `Case notes: ${caseItem.notes}` : "No case notes yet."}
-                </p>
-
-                <div className="button-row">
-                  <a href={`/cases/${caseItem.id}`} className="button">
-                    Open Case
-                  </a>
-
-                  {String(caseItem.status) !== "In Review" && String(caseItem.status) !== "Closed" && (
-                    <button
-                      className="button button-secondary"
-                      type="button"
-                      onClick={() => quickUpdateStatus(caseItem.id, "In Review")}
-                    >
-                      Move to Review
-                    </button>
-                  )}
-
-                  {String(caseItem.status) !== "Escalated" && String(caseItem.status) !== "Closed" && (
-                    <button
-                      className="button button-secondary"
-                      type="button"
-                      onClick={() => quickUpdateStatus(caseItem.id, "Escalated")}
-                    >
-                      Escalate
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {!error && filteredCases.length === 0 && (
-              <div className="summary-box">
-                <p>No cases matched your filters.</p>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </main>
