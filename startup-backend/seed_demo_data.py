@@ -1,18 +1,12 @@
 import json
-import os
-from pathlib import Path
 
 from app.core.database import Base, SessionLocal, engine
 from app.models.action_log import ActionLog
 from app.models.scam_case import ScamCase
 
-DB_FILE = Path("startup_scam_ops.db")
-
 
 def reset_database():
-    if DB_FILE.exists():
-        DB_FILE.unlink()
-
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
 
