@@ -4,6 +4,14 @@ Aegis Member Protection is a case operations platform for suspected elder exploi
 
 It gives teams a structured way to intake concerns, triage risk, escalate cases, document actions, and review outcomes across branch, contact center, and fraud operations.
 
+## Product Preview
+
+![Aegis Homepage](docs/screenshots/homepage.png)
+
+## Demo
+
+![Aegis Demo](docs/demo/aegis-demo.gif)
+
 ---
 
 ## Why Aegis Exists
@@ -139,7 +147,7 @@ python3 -m venv venv
 source venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
 ```
 
 Backend docs should be available at: `http://localhost:8000/docs`
@@ -216,15 +224,20 @@ Planned improvements include:
 
 ## Screenshots
 
-Add product screenshots here once ready.
+### Operations Workspace
+Review active cases, assess urgency, escalate, assign ownership, and document next steps from one operator workspace.
 
-Example:
-
-```md
 ![Operations Workspace](docs/screenshots/operations.png)
+
+### Reporting
+Track case volume, source-unit distribution, workflow progression, and operational outcomes in one management view.
+
 ![Reporting View](docs/screenshots/reporting.png)
+
+### New Intake
+Capture suspected exploitation concerns through a structured intake workflow with live triage guidance.
+
 ![New Intake](docs/screenshots/intake.png)
-```
 
 ---
 
@@ -244,4 +257,4 @@ The focus is on building a workflow system that feels:
 
 ## Authors
 
-Built by Omer Kurt and team.
+Built by Omer Kurt
