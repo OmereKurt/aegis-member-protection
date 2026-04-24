@@ -8,7 +8,14 @@ from app.api.routes.scam_cases import router as scam_cases_router
 from app.core.database import Base, engine
 from app.models import action_log, scam_case  # noqa: F401
 
-app = FastAPI(title="Scam Intervention Ops")
+app = FastAPI(
+    title="Aegis Member Protection API",
+    description=(
+        "Backend API for intake, queue operations, case updates, "
+        "and reporting for suspected elder exploitation workflows."
+    ),
+    version="0.1.0",
+)
 
 frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
 

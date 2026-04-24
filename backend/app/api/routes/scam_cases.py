@@ -17,7 +17,7 @@ from app.schemas.scam_case import (
 )
 from app.services.scam_case_logic import build_case_artifacts
 
-router = APIRouter(prefix="/api/scam-cases", tags=["scam-cases"])
+router = APIRouter(prefix="/api/scam-cases", tags=["cases"])
 
 
 def write_action_log(db: Session, scam_case_id: int, action_type: str, details: str):
@@ -91,7 +91,7 @@ def serialize_case(db: Session, case: ScamCase) -> dict:
     }
 
 
-@router.get("/")
+@router.get("/", response_model=list[ScamCaseResponse], summary="List Cases")
 def list_scam_cases():
     db: Session = SessionLocal()
 
@@ -109,33 +109,12 @@ def list_scam_cases():
                 -(case.id or 0),
             ),
         )
-
-        results = []
-        for case in cases:
-            results.append(
-                {
-                    "id": case.id,
-                    "case_id": case.case_id,
-                    "title": case.title,
-                    "customer_identifier": case.customer_identifier,
-                    "source_unit": case.source_unit,
-                    "assigned_owner": case.assigned_owner,
-                    "assigned_team": case.assigned_team,
-                    "scam_type": case.scam_type,
-                    "urgency": case.urgency,
-                    "status": case.status,
-                    "amount_at_risk": case.amount_at_risk,
-                    "notes": case.notes,
-                    "created_at": case.created_at.isoformat() if case.created_at else None,
-                }
-            )
-
-        return results
+        return [serialize_case(db, case) for case in cases]
     finally:
         db.close()
 
 
-@router.get("/summary")
+@router.get("/summary", summary="Get Case Summary")
 def get_scam_case_summary():
     db: Session = SessionLocal()
 
@@ -177,7 +156,8 @@ def get_scam_case_summary():
         db.close()
 
 
-@router.post("/intake", response_model=ScamCaseResponse)
+@router.post("/", response_model=ScamCaseResponse, summary="Create Case")
+@router.post("/intake", response_model=ScamCaseResponse, summary="Create Intake Case")
 def create_scam_case(payload: ScamCaseIntakeRequest):
     db: Session = SessionLocal()
 
@@ -234,7 +214,40 @@ def create_scam_case(payload: ScamCaseIntakeRequest):
         db.close()
 
 
-@router.get("/{case_id}", response_model=ScamCaseResponse)
+@router.post("/reset-demo-data", summary="Reset Demo Data")
+def reset_demo_data():
+    db: Session = SessionLocal()
+
+    try:
+        deleted_logs = db.query(ActionLog).delete()
+        deleted_cases = db.query(ScamCase).delete()
+        db.commit()
+
+        return {"deleted_cases": deleted_cases, "deleted_action_logs": deleted_logs}
+    finally:
+        db.close()
+
+
+@router.delete("/{case_id}", summary="Delete Case")
+def delete_scam_case(case_id: int):
+    db: Session = SessionLocal()
+
+    try:
+        case = db.query(ScamCase).filter(ScamCase.id == case_id).first()
+
+        if not case:
+            raise HTTPException(status_code=404, detail="Case not found")
+
+        db.query(ActionLog).filter(ActionLog.scam_case_id == case.id).delete()
+        db.delete(case)
+        db.commit()
+
+        return {"id": case_id, "deleted": True}
+    finally:
+        db.close()
+
+
+@router.get("/{case_id}", response_model=ScamCaseResponse, summary="Get Case")
 def get_scam_case(case_id: int):
     db: Session = SessionLocal()
 
@@ -249,7 +262,7 @@ def get_scam_case(case_id: int):
         db.close()
 
 
-@router.put("/{case_id}/status")
+@router.put("/{case_id}/status", response_model=ScamCaseResponse, summary="Update Case Status")
 def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
     db: Session = SessionLocal()
 
@@ -270,13 +283,12 @@ def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
             "status_changed",
             f"Status changed from {old_status} to {case.status}.",
         )
-
-        return {"id": case.id, "status": case.status}
+        return serialize_case(db, case)
     finally:
         db.close()
 
 
-@router.put("/{case_id}/notes")
+@router.put("/{case_id}/notes", response_model=ScamCaseResponse, summary="Update Case Notes")
 def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
     db: Session = SessionLocal()
 
@@ -297,13 +309,12 @@ def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
             "notes_updated",
             preview,
         )
-
-        return {"id": case.id, "notes": case.notes}
+        return serialize_case(db, case)
     finally:
         db.close()
 
 
-@router.put("/{case_id}/assignment")
+@router.put("/{case_id}/assignment", response_model=ScamCaseResponse, summary="Update Case Assignment")
 def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
     db: Session = SessionLocal()
 
@@ -327,17 +338,12 @@ def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
             "assignment_updated",
             f"Assignment updated to owner: {owner_text}; team: {team_text}.",
         )
-
-        return {
-            "id": case.id,
-            "assigned_owner": case.assigned_owner,
-            "assigned_team": case.assigned_team,
-        }
+        return serialize_case(db, case)
     finally:
         db.close()
 
 
-@router.put("/{case_id}/close")
+@router.put("/{case_id}/close", response_model=ScamCaseResponse, summary="Close Case")
 def close_scam_case(case_id: int, payload: CaseCloseUpdate):
     db: Session = SessionLocal()
 
@@ -360,12 +366,6 @@ def close_scam_case(case_id: int, payload: CaseCloseUpdate):
             "case_closed",
             f"Case closed with outcome {case.outcome_type}.",
         )
-
-        return {
-            "id": case.id,
-            "status": case.status,
-            "outcome_type": case.outcome_type,
-            "closure_notes": case.closure_notes,
-        }
+        return serialize_case(db, case)
     finally:
         db.close()

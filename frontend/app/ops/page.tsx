@@ -1,29 +1,18 @@
 "use client";
 
+/* eslint-disable @next/next/no-html-link-for-pages */
+
 import { useEffect, useMemo, useState } from "react";
-
-type TimelineItem = {
-  title: string;
-  time: string;
-  body: string;
-};
-
-type CaseItem = {
-  id: string;
-  title: string;
-  source: string;
-  sourceGroup: string;
-  member: string;
-  risk: "Low" | "Medium" | "High" | "Critical";
-  status: "New" | "Review" | "Escalated" | "Closed";
-  owner: string;
-  age: string;
-  nextStep: string;
-  summary: string;
-  note: string;
-  recommendedActions: string[];
-  timeline: TimelineItem[];
-};
+import {
+  deleteScamCase,
+  listScamCases,
+  resetDemoData,
+  toQueueCase,
+  updateScamCaseAssignment,
+  updateScamCaseNotes,
+  updateScamCaseStatus,
+  type QueueCase as CaseItem,
+} from "../lib/scamCases";
 
 const initialCases: CaseItem[] = [
   {
@@ -242,13 +231,6 @@ function statusBadgeClass(status: string) {
   }
 }
 
-function nowLabel() {
-  return new Date().toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 function percent(count: number, total: number) {
   if (total === 0) return "0%";
   return `${Math.round((count / total) * 100)}%`;
@@ -257,6 +239,9 @@ function percent(count: number, total: number) {
 export default function OperationsPage() {
   const [cases, setCases] = useState<CaseItem[]>(initialCases);
   const [selectedCaseId, setSelectedCaseId] = useState(initialCases[0].id);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [actionInFlight, setActionInFlight] = useState(false);
 
   const [sourceFilter, setSourceFilter] = useState("All source units");
   const [riskFilter, setRiskFilter] = useState("All risk levels");
@@ -264,6 +249,43 @@ export default function OperationsPage() {
   const [teamFilter, setTeamFilter] = useState("All teams");
 
   const [actionFeedback, setActionFeedback] = useState("");
+
+  async function loadCases(preferredCaseId?: string) {
+    try {
+      setIsLoading(true);
+      const records = await listScamCases();
+      const mapped = records.map(toQueueCase);
+      setCases(mapped);
+      setLoadError("");
+
+      const selectedFromUrl =
+        preferredCaseId || new URLSearchParams(window.location.search).get("selected");
+
+      if (selectedFromUrl && mapped.some((item) => item.id === selectedFromUrl)) {
+        setSelectedCaseId(selectedFromUrl);
+        setActionFeedback(`New intake ${selectedFromUrl} added to the queue.`);
+        window.history.replaceState(null, "", "/ops");
+      } else if (mapped.length > 0 && !mapped.some((item) => item.id === selectedCaseId)) {
+        setSelectedCaseId(mapped[0].id);
+      } else if (mapped.length === 0) {
+        setSelectedCaseId("");
+      }
+    } catch {
+      setLoadError("Unable to reach the backend. Showing the built-in demo queue.");
+      setCases(initialCases);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void loadCases();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredQueue = useMemo(() => {
     return cases.filter((item) => {
@@ -278,17 +300,19 @@ export default function OperationsPage() {
   }, [cases, sourceFilter, riskFilter, statusFilter, teamFilter]);
 
   useEffect(() => {
-    if (!filteredQueue.some((item) => item.id === selectedCaseId)) {
-      if (filteredQueue.length > 0) {
-        setSelectedCaseId(filteredQueue[0].id);
-      }
-    }
+    if (filteredQueue.some((item) => item.id === selectedCaseId)) return;
+    if (filteredQueue.length === 0) return;
+
+    const timeout = window.setTimeout(() => {
+      setSelectedCaseId(filteredQueue[0].id);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, [filteredQueue, selectedCaseId]);
 
   const selectedCase =
     filteredQueue.find((item) => item.id === selectedCaseId) ??
-    cases.find((item) => item.id === selectedCaseId) ??
-    cases[0];
+    cases.find((item) => item.id === selectedCaseId);
 
   const openCases = filteredQueue.filter((item) => item.status !== "Closed").length;
   const escalatedToday = filteredQueue.filter((item) => item.status === "Escalated").length;
@@ -321,89 +345,126 @@ export default function OperationsPage() {
     },
   ];
 
-  function updateSelectedCase(
-    updater: (existing: CaseItem) => CaseItem,
-    feedback: string
-  ) {
-    setCases((prev) =>
-      prev.map((item) =>
-        item.id === selectedCase.id ? updater(item) : item
-      )
-    );
-    setActionFeedback(feedback);
-  }
+  async function runCaseAction(action: () => Promise<unknown>, feedback: string) {
+    if (!selectedCase?.backendId) {
+      setActionFeedback("Select a backend-backed case before saving an update.");
+      return;
+    }
 
-  function addTimeline(existing: CaseItem, title: string, body: string) {
-    return [
-      { title, body, time: nowLabel() },
-      ...existing.timeline,
-    ].slice(0, 6);
+    try {
+      setActionInFlight(true);
+      await action();
+      await loadCases(selectedCase.id);
+      setActionFeedback(feedback);
+    } catch {
+      setActionFeedback(
+        "Unable to save that update. Please try again once the backend is reachable."
+      );
+    } finally {
+      setActionInFlight(false);
+    }
   }
 
   function handleEscalate() {
-    updateSelectedCase(
-      (item) => ({
-        ...item,
-        status: "Escalated",
-        owner: item.owner === "Queue" ? "Fraud Ops" : item.owner,
-        nextStep: "Supervisor and fraud review underway",
-        timeline: addTimeline(
-          item,
-          "Case escalated by operator",
-          "Selected case was moved into escalated handling from the focused workspace."
-        ),
-      }),
-      `Escalation recorded for ${selectedCase.id}.`
-    );
+    if (!selectedCase) return;
+
+    runCaseAction(async () => {
+      await updateScamCaseStatus(selectedCase.backendId!, "Escalated");
+      if (selectedCase.owner === "Queue") {
+        await updateScamCaseAssignment(
+          selectedCase.backendId!,
+          "Fraud Ops",
+          "Fraud Operations"
+        );
+      }
+    }, `Escalation recorded for ${selectedCase.caseNumber || selectedCase.id}.`);
   }
 
   function handleAssignFraudOps() {
-    updateSelectedCase(
-      (item) => ({
-        ...item,
-        owner: "Fraud Ops",
-        nextStep: "Fraud Ops owner reviewing case",
-        timeline: addTimeline(
-          item,
-          "Case assigned to Fraud Ops",
-          "Focused case ownership was updated from the workspace action panel."
+    if (!selectedCase) return;
+
+    runCaseAction(
+      () =>
+        updateScamCaseAssignment(
+          selectedCase.backendId!,
+          "Fraud Ops",
+          "Fraud Operations"
         ),
-      }),
-      `Owner updated to Fraud Ops for ${selectedCase.id}.`
+      `Owner updated to Fraud Ops for ${selectedCase.caseNumber || selectedCase.id}.`
     );
   }
 
   function handleAddNote() {
-    updateSelectedCase(
-      (item) => ({
-        ...item,
-        timeline: addTimeline(
-          item,
-          "Operator note added",
-          "Additional operator context was recorded from the focused case panel."
-        ),
-      }),
-      `Operator note added to ${selectedCase.id}.`
+    if (!selectedCase) return;
+
+    const timestamp = new Date().toLocaleString([], {
+      dateStyle: "short",
+      timeStyle: "short",
+    });
+    const existingNote =
+      selectedCase.note === "No operator note has been recorded yet."
+        ? ""
+        : selectedCase.note;
+    const nextNote = [existingNote, `Operator note added from workspace on ${timestamp}.`]
+      .filter(Boolean)
+      .join("\n\n");
+
+    runCaseAction(
+      () => updateScamCaseNotes(selectedCase.backendId!, nextNote),
+      `Operator note added to ${selectedCase.caseNumber || selectedCase.id}.`
     );
   }
 
   function handleMarkReviewed() {
-    updateSelectedCase(
-      (item) => ({
-        ...item,
-        status: item.status === "Closed" ? "Closed" : "Review",
-        nextStep:
-          item.status === "Closed"
-            ? item.nextStep
-            : "Awaiting documented follow-up and next action",
-        timeline: addTimeline(
-          item,
-          "Case marked as reviewed",
-          "Focused case status was updated to reviewed from the workspace panel."
-        ),
-      }),
-      `Review status updated for ${selectedCase.id}.`
+    if (!selectedCase) return;
+
+    if (selectedCase.status === "Closed") {
+      setActionFeedback(`${selectedCase.caseNumber || selectedCase.id} is already closed.`);
+      return;
+    }
+
+    runCaseAction(
+      () => updateScamCaseStatus(selectedCase.backendId!, "In Review"),
+      `Review status updated for ${selectedCase.caseNumber || selectedCase.id}.`
     );
+  }
+
+  async function handleDeleteSelectedCase() {
+    if (!selectedCase?.backendId) {
+      setActionFeedback("Select a backend-backed case before deleting.");
+      return;
+    }
+
+    try {
+      setActionInFlight(true);
+      const deletedId = selectedCase.id;
+      const nextCase =
+        filteredQueue.find((item) => item.id !== deletedId) ??
+        cases.find((item) => item.id !== deletedId);
+
+      await deleteScamCase(selectedCase.backendId);
+      setSelectedCaseId(nextCase?.id || "");
+      await loadCases(nextCase?.id);
+      setActionFeedback(`Deleted ${selectedCase.caseNumber || selectedCase.id}.`);
+    } catch {
+      setActionFeedback("Unable to delete the selected case right now.");
+    } finally {
+      setActionInFlight(false);
+    }
+  }
+
+  async function handleResetDemoData() {
+    try {
+      setActionInFlight(true);
+      await resetDemoData();
+      setSelectedCaseId("");
+      await loadCases();
+      setActionFeedback("Demo data reset. The shared queue is now clean.");
+    } catch {
+      setActionFeedback("Unable to reset demo data right now.");
+    } finally {
+      setActionInFlight(false);
+    }
   }
 
   return (
@@ -463,6 +524,20 @@ export default function OperationsPage() {
                 </a>
               </div>
             </div>
+
+            {isLoading ? (
+              <div className="ops-inline-banner">
+                Loading live cases from the backend...
+              </div>
+            ) : null}
+
+            {loadError ? (
+              <div className="ops-inline-banner">{loadError}</div>
+            ) : null}
+
+            {actionFeedback ? (
+              <div className="ops-inline-banner">{actionFeedback}</div>
+            ) : null}
 
             <div className="ops-filter-grid">
               <div className="field-group">
@@ -538,14 +613,31 @@ export default function OperationsPage() {
                   {filteredQueue.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="queue-empty">
-                        No cases match the current filters.
+                        {cases.length === 0 ? (
+                          <div>
+                            <strong>No active cases yet.</strong>
+                            <div className="muted" style={{ marginTop: 8 }}>
+                              Start a new intake to create the first case and begin the workflow.
+                            </div>
+                            <div className="button-row" style={{ marginTop: 14 }}>
+                              <a href="/cases/new" className="button">
+                                Start New Intake
+                              </a>
+                              <a href="/reporting" className="button button-secondary">
+                                Open Reporting
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          "No cases match the current filters."
+                        )}
                       </td>
                     </tr>
                   ) : (
                     filteredQueue.map((item) => (
                       <tr
                         key={item.id}
-                        className={item.id === selectedCase.id ? "is-selected" : ""}
+                        className={item.id === selectedCase?.id ? "is-selected" : ""}
                         onClick={() => {
                           setSelectedCaseId(item.id);
                           setActionFeedback("");
@@ -555,7 +647,7 @@ export default function OperationsPage() {
                           <div className="queue-title">
                             <strong>{item.title}</strong>
                             <span className="queue-subtext">
-                              {item.id} · {item.member}
+                              {item.caseNumber || item.id} · {item.member}
                             </span>
                           </div>
                         </td>
@@ -584,96 +676,156 @@ export default function OperationsPage() {
 
         <aside className="ops-side-column">
           <div className="workspace-hero sticky-case-panel">
-            <div className="workspace-title-row">
-              <div className="workspace-title-block">
-                <h2>Focused case view</h2>
-                <p className="workspace-subtle">
-                  Live case details driven by the selected queue row.
-                </p>
+            {selectedCase ? (
+              <>
+                <div className="workspace-title-row">
+                  <div className="workspace-title-block">
+                    <h2>Focused case view</h2>
+                    <p className="workspace-subtle">
+                      Live case details driven by the selected queue row.
+                    </p>
+                  </div>
+
+                  <div className="inline-badge-row">
+                    <span className={riskBadgeClass(selectedCase.risk)}>
+                      {selectedCase.risk}
+                    </span>
+                    <span className={statusBadgeClass(selectedCase.status)}>
+                      {selectedCase.status}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="workspace-meta-grid">
+                  <div className="workspace-meta-item">
+                    <div className="label">Case ID</div>
+                    <div className="value">{selectedCase.caseNumber || selectedCase.id}</div>
+                  </div>
+
+                  <div className="workspace-meta-item">
+                    <div className="label">Source unit</div>
+                    <div className="value">{selectedCase.source}</div>
+                  </div>
+
+                  <div className="workspace-meta-item">
+                    <div className="label">Assigned team</div>
+                    <div className="value">{selectedCase.owner}</div>
+                  </div>
+
+                  <div className="workspace-meta-item">
+                    <div className="label">Next step</div>
+                    <div className="value">{selectedCase.nextStep}</div>
+                  </div>
+                </div>
+
+                <div className="action-grid">
+                  <div className="demo-cleanup-inline">
+                    <button
+                      type="button"
+                      className="button button-secondary button-compact"
+                      onClick={handleDeleteSelectedCase}
+                      disabled={actionInFlight || !selectedCase}
+                    >
+                      Delete selected case
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-secondary button-compact"
+                      onClick={handleResetDemoData}
+                      disabled={actionInFlight}
+                    >
+                      Reset Demo Data
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="button button-compact"
+                    onClick={handleEscalate}
+                    disabled={actionInFlight}
+                  >
+                    Escalate case
+                  </button>
+
+                  <button
+                    type="button"
+                    className="button button-secondary button-compact"
+                    onClick={handleAssignFraudOps}
+                    disabled={actionInFlight}
+                  >
+                    Assign to Fraud Ops
+                  </button>
+
+                  <button
+                    type="button"
+                    className="button button-secondary button-compact"
+                    onClick={handleAddNote}
+                    disabled={actionInFlight}
+                  >
+                    Add operator note
+                  </button>
+
+                  <button
+                    type="button"
+                    className="button button-secondary button-compact"
+                    onClick={handleMarkReviewed}
+                    disabled={actionInFlight}
+                  >
+                    Mark reviewed
+                  </button>
+                </div>
+
+                <div className="focused-case-stack">
+                  <div>
+                    <h3 className="workspace-section-title">Case summary</h3>
+                    <p className="workspace-subtle">{selectedCase.summary}</p>
+                  </div>
+
+                  <div className="workspace-callout">
+                    <strong>Operator note:</strong> {selectedCase.note}
+                  </div>
+
+                  <div>
+                    <h3 className="workspace-section-title">Recommended actions</h3>
+                    <ul className="workspace-list">
+                      {selectedCase.recommendedActions.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="focused-case-stack">
+                <div className="workspace-title-block">
+                  <h2>Focused case view</h2>
+                  <p className="workspace-subtle">
+                    No case is selected. Start a new intake to create the first case or
+                    load sample data to begin.
+                  </p>
+                </div>
+
+                <div className="button-row">
+                  <a href="/cases/new" className="button">
+                    Start New Intake
+                  </a>
+                  <a href="/reporting" className="button button-secondary">
+                    Open Reporting
+                  </a>
+                </div>
+
+                <div className="demo-cleanup-inline">
+                  <button
+                    type="button"
+                    className="button button-secondary button-compact"
+                    onClick={handleResetDemoData}
+                    disabled={actionInFlight}
+                  >
+                    Reset Demo Data
+                  </button>
+                </div>
               </div>
-
-              <div className="inline-badge-row">
-                <span className={riskBadgeClass(selectedCase.risk)}>
-                  {selectedCase.risk}
-                </span>
-                <span className={statusBadgeClass(selectedCase.status)}>
-                  {selectedCase.status}
-                </span>
-              </div>
-            </div>
-
-            <div className="workspace-meta-grid">
-              <div className="workspace-meta-item">
-                <div className="label">Case ID</div>
-                <div className="value">{selectedCase.id}</div>
-              </div>
-
-              <div className="workspace-meta-item">
-                <div className="label">Source unit</div>
-                <div className="value">{selectedCase.source}</div>
-              </div>
-
-              <div className="workspace-meta-item">
-                <div className="label">Assigned team</div>
-                <div className="value">{selectedCase.owner}</div>
-              </div>
-
-              <div className="workspace-meta-item">
-                <div className="label">Next step</div>
-                <div className="value">{selectedCase.nextStep}</div>
-              </div>
-            </div>
-
-            <div className="action-grid">
-              <button type="button" className="button button-compact" onClick={handleEscalate}>
-                Escalate case
-              </button>
-              <button
-                type="button"
-                className="button button-secondary button-compact"
-                onClick={handleAssignFraudOps}
-              >
-                Assign to Fraud Ops
-              </button>
-              <button
-                type="button"
-                className="button button-secondary button-compact"
-                onClick={handleAddNote}
-              >
-                Add operator note
-              </button>
-              <button
-                type="button"
-                className="button button-secondary button-compact"
-                onClick={handleMarkReviewed}
-              >
-                Mark reviewed
-              </button>
-            </div>
-
-            {actionFeedback ? (
-              <div className="action-feedback">{actionFeedback}</div>
-            ) : null}
-
-            <div className="focused-case-stack">
-              <div>
-                <h3 className="workspace-section-title">Case summary</h3>
-                <p className="workspace-subtle">{selectedCase.summary}</p>
-              </div>
-
-              <div className="workspace-callout">
-                <strong>Operator note:</strong> {selectedCase.note}
-              </div>
-
-              <div>
-                <h3 className="workspace-section-title">Recommended actions</h3>
-                <ul className="workspace-list">
-                  {selectedCase.recommendedActions.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="workspace-panel">
@@ -709,13 +861,17 @@ export default function OperationsPage() {
         <div className="workspace-panel">
           <h3 className="workspace-section-title">Recent activity</h3>
           <div className="timeline-list">
-            {selectedCase.timeline.map((item) => (
-              <div className="timeline-item" key={`${item.title}-${item.time}`}>
-                <div className="timeline-item-title">{item.title}</div>
-                <div className="timeline-item-time">{item.time}</div>
-                <div className="muted">{item.body}</div>
-              </div>
-            ))}
+            {selectedCase ? (
+              selectedCase.timeline.map((item) => (
+                <div className="timeline-item" key={`${item.title}-${item.time}`}>
+                  <div className="timeline-item-title">{item.title}</div>
+                  <div className="timeline-item-time">{item.time}</div>
+                  <div className="muted">{item.body}</div>
+                </div>
+              ))
+            ) : (
+              <div className="muted">No recent activity to show.</div>
+            )}
           </div>
         </div>
 

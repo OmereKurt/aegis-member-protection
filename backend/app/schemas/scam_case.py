@@ -1,6 +1,6 @@
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 AgeBand = Literal["under_60", "60_69", "70_79", "80_plus", "unknown"]
@@ -10,7 +10,173 @@ StatusType = Literal["New", "In Review", "Escalated", "Closed"]
 OutcomeType = Literal["customer_protected", "funds_blocked", "funds_lost", "false_alarm", "follow_up_required", "unknown"]
 
 
+def _first_present(data: dict, *keys: str):
+    for key in keys:
+        if key in data:
+            return data[key]
+    return None
+
+
+def _normalize_age_band(value):
+    if value is None:
+        return "unknown"
+
+    normalized = str(value).strip().lower().replace(" ", "_").replace("-", "_")
+    aliases = {
+        "under_60": "under_60",
+        "60_69": "60_69",
+        "70_79": "70_79",
+        "80_89": "80_plus",
+        "80_plus": "80_plus",
+        "80+": "80_plus",
+        "90+": "80_plus",
+        "unknown": "unknown",
+    }
+    return aliases.get(normalized, "unknown")
+
+
+def _normalize_intake_channel(value):
+    if value is None:
+        return "other"
+
+    normalized = str(value).strip().lower().replace(" ", "_").replace("-", "_")
+    aliases = {
+        "branch": "branch",
+        "phone": "phone",
+        "call_center": "phone",
+        "contact_center": "phone",
+        "family_report": "family_report",
+        "advisor_report": "advisor_report",
+        "fraud_referral": "advisor_report",
+        "digital": "online",
+        "digital_banking": "online",
+        "online": "online",
+        "other": "other",
+    }
+    return aliases.get(normalized, "other")
+
+
+def _normalize_transaction_type(value):
+    if value is None:
+        return "other"
+
+    normalized = str(value).strip().lower().replace(" ", "_").replace("-", "_").replace("'", "")
+    aliases = {
+        "wire": "wire",
+        "ach": "ach",
+        "cash_withdrawal": "cash_withdrawal",
+        "cashiers_check": "check",
+        "cashier’s_check": "check",
+        "check": "check",
+        "card": "card",
+        "card_activity": "card",
+        "crypto": "crypto",
+        "gift_cards": "gift_cards",
+        "gift_card": "gift_cards",
+        "other": "other",
+    }
+    return aliases.get(normalized, "other")
+
+
 class ScamCaseIntakeRequest(BaseModel):
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_frontend_payload(cls, data):
+        if not isinstance(data, dict):
+            return data
+
+        normalized = dict(data)
+
+        normalized["customer_identifier"] = _first_present(normalized, "customer_identifier", "memberIdentifier")
+        normalized["full_name"] = _first_present(normalized, "full_name", "memberName")
+        normalized["age_band"] = _normalize_age_band(_first_present(normalized, "age_band", "ageBand"))
+        normalized["vulnerable_adult_flag"] = bool(
+            _first_present(normalized, "vulnerable_adult_flag", "potentiallyVulnerableAdult") or False
+        )
+        normalized["source_unit"] = _first_present(normalized, "source_unit", "sourceUnit") or "Branch"
+
+        normalized["trusted_contact_exists"] = bool(
+            _first_present(normalized, "trusted_contact_exists", "trustedContactAvailable") or False
+        )
+        normalized["trusted_contact_name"] = _first_present(normalized, "trusted_contact_name", "trustedContactName")
+        normalized["trusted_contact_phone"] = _first_present(normalized, "trusted_contact_phone", "trustedContactPhone")
+
+        normalized["intake_channel"] = _normalize_intake_channel(
+            _first_present(normalized, "intake_channel", "intakeChannel")
+        )
+        normalized["transaction_type"] = _normalize_transaction_type(
+            _first_present(normalized, "transaction_type", "transactionType")
+        )
+
+        amount = _first_present(normalized, "amount_at_risk", "potentialLossAmount")
+        normalized["amount_at_risk"] = float(amount or 0)
+
+        normalized["money_already_left"] = bool(
+            _first_present(normalized, "money_already_left", "fundsMayHaveLeft") or False
+        )
+        normalized["customer_currently_on_call_with_scammer"] = bool(
+            _first_present(
+                normalized,
+                "customer_currently_on_call_with_scammer",
+                "memberStillOnPhoneWithScammer",
+            )
+            or False
+        )
+        normalized["new_payee_or_destination"] = bool(
+            _first_present(normalized, "new_payee_or_destination", "newPayeeOrDestination") or False
+        )
+        normalized["customer_told_to_keep_secret"] = bool(
+            _first_present(normalized, "customer_told_to_keep_secret", "toldToKeepSecret") or False
+        )
+
+        observations = str(_first_present(normalized, "staffObservations") or "").strip()
+        operator_notes = str(_first_present(normalized, "operatorNotes") or "").strip()
+        narrative = str(_first_present(normalized, "narrative") or "").strip()
+        if not narrative:
+            narrative = "\n\n".join(
+                item
+                for item in [
+                    observations,
+                    f"Operator notes: {operator_notes}" if operator_notes else "",
+                ]
+                if item
+            )
+        normalized["narrative"] = narrative or "No narrative provided."
+
+        normalized["phone_based_imposter_story"] = bool(
+            _first_present(normalized, "phone_based_imposter_story", "memberStillOnPhoneWithScammer") or False
+        )
+        normalized["government_or_bank_brand_impersonation"] = bool(
+            _first_present(normalized, "government_or_bank_brand_impersonation", "coachedOrPressured") or False
+        )
+        normalized["fear_or_urgency_language"] = bool(
+            _first_present(normalized, "fear_or_urgency_language", "coachedOrPressured") or False
+        )
+        normalized["secrecy_pressure"] = bool(
+            _first_present(normalized, "secrecy_pressure", "toldToKeepSecret") or False
+        )
+        normalized["high_dollar_amount"] = bool(
+            _first_present(normalized, "high_dollar_amount") or normalized["amount_at_risk"] >= 10000
+        )
+        normalized["older_or_vulnerable_customer"] = bool(
+            _first_present(normalized, "older_or_vulnerable_customer", "potentiallyVulnerableAdult") or False
+        )
+        normalized["repeat_attempt"] = bool(
+            _first_present(normalized, "repeat_attempt", "unusualWithdrawalPattern") or False
+        )
+        normalized["remote_access_or_tech_support_story"] = bool(
+            _first_present(normalized, "remote_access_or_tech_support_story") or False
+        )
+        normalized["crypto_or_gift_card_request"] = bool(
+            _first_present(normalized, "crypto_or_gift_card_request") or False
+        )
+        normalized["romance_or_emotional_dependency_pattern"] = bool(
+            _first_present(normalized, "romance_or_emotional_dependency_pattern") or False
+        )
+
+        return normalized
+
     customer_identifier: str
     full_name: Optional[str] = None
     age_band: AgeBand
