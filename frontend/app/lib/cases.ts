@@ -1,5 +1,50 @@
 export type BackendStatus = "New" | "In Review" | "Escalated" | "Closed";
 
+export type OutcomeType =
+  | "member_protected"
+  | "funds_blocked_or_held"
+  | "trusted_contact_engaged"
+  | "fraud_ops_escalation_completed"
+  | "monitoring_only"
+  | "false_concern_no_exploitation_found"
+  | "funds_sent_loss_occurred"
+  | "customer_unreachable"
+  | "other"
+  | "customer_protected"
+  | "funds_blocked"
+  | "funds_lost"
+  | "false_alarm"
+  | "follow_up_required"
+  | "unknown";
+
+export const outcomeOptions: { value: OutcomeType; label: string }[] = [
+  { value: "member_protected", label: "Member protected" },
+  { value: "funds_blocked_or_held", label: "Funds blocked or held" },
+  { value: "trusted_contact_engaged", label: "Trusted contact engaged" },
+  { value: "fraud_ops_escalation_completed", label: "Fraud ops escalation completed" },
+  { value: "monitoring_only", label: "Monitoring only" },
+  { value: "false_concern_no_exploitation_found", label: "False concern / no exploitation found" },
+  { value: "funds_sent_loss_occurred", label: "Funds sent / loss occurred" },
+  { value: "customer_unreachable", label: "Customer unreachable" },
+  { value: "other", label: "Other" },
+];
+
+export function outcomeLabel(value?: string | null) {
+  if (!value) return "Not recorded";
+  return (
+    outcomeOptions.find((item) => item.value === value)?.label ||
+    {
+      customer_protected: "Member protected",
+      funds_blocked: "Funds blocked or held",
+      funds_lost: "Funds sent / loss occurred",
+      false_alarm: "False concern / no exploitation found",
+      follow_up_required: "Monitoring only",
+      unknown: "Other",
+    }[value] ||
+    value.replace(/_/g, " ")
+  );
+}
+
 export type ActionLog = {
   id: number;
   created_at?: string | null;
@@ -7,7 +52,33 @@ export type ActionLog = {
   details: string;
 };
 
-export type BackendScamCase = {
+export type CaseSignal = {
+  label: string;
+  present: boolean;
+  severity: "watch" | "low" | "medium" | "high" | string;
+  evidence: string;
+};
+
+export type CaseIntelligence = {
+  likely_pattern_code: string;
+  likely_pattern: string;
+  signal_strength: "Limited" | "Moderate" | "Strong" | "Critical" | string;
+  risk_drivers: string[];
+  missing_information: string[];
+  recommended_next_steps: string[];
+  suggested_escalation_path: string[];
+  structured_signals: CaseSignal[];
+  why_high_risk: string[];
+  member_context?: {
+    display_name?: string;
+    source_unit?: string;
+    transaction_type?: string;
+    amount_at_risk?: number;
+    trusted_contact_available?: boolean;
+  };
+};
+
+export type BackendCase = {
   id: number;
   case_id: string;
   created_at?: string | null;
@@ -47,9 +118,17 @@ export type BackendScamCase = {
     trusted_contact_recommended?: boolean;
     law_enforcement_reporting_recommended?: boolean;
   };
+  case_intelligence?: CaseIntelligence;
   notes: string;
   outcome_type?: string | null;
   closure_notes?: string | null;
+  closure_summary?: string | null;
+  estimated_amount_protected?: number | null;
+  estimated_amount_lost?: number | null;
+  trusted_contact_engaged?: boolean | null;
+  fraud_ops_involved?: boolean | null;
+  follow_up_required?: boolean | null;
+  closed_at?: string | null;
   action_logs: ActionLog[];
 };
 
@@ -75,10 +154,22 @@ export type QueueCase = {
   summary: string;
   note: string;
   recommendedActions: string[];
+  intelligence?: CaseIntelligence;
+  closure?: {
+    outcomeType?: string | null;
+    outcomeLabel: string;
+    closureSummary?: string | null;
+    estimatedAmountProtected?: number | null;
+    estimatedAmountLost?: number | null;
+    trustedContactEngaged?: boolean | null;
+    fraudOpsInvolved?: boolean | null;
+    followUpRequired?: boolean | null;
+    closedAt?: string | null;
+  };
   timeline: TimelineItem[];
 };
 
-export type ScamCaseIntakePayload = {
+export type CaseIntakePayload = {
   customer_identifier: string;
   full_name?: string | null;
   age_band: string;
@@ -107,6 +198,30 @@ export type ScamCaseIntakePayload = {
   romance_or_emotional_dependency_pattern?: boolean;
 };
 
+export type CaseActionPayload = {
+  action_type?: string;
+  label: string;
+  details?: string;
+  status?: BackendStatus;
+  assigned_owner?: string | null;
+  assigned_team?: string | null;
+  notes?: string;
+  money_already_left?: boolean;
+  outcome_type?: OutcomeType;
+  closure_notes?: string;
+};
+
+export type CaseClosurePayload = {
+  outcome_type: OutcomeType;
+  closure_summary: string;
+  follow_up_required: boolean;
+  estimated_amount_protected?: number | null;
+  estimated_amount_lost?: number | null;
+  trusted_contact_engaged: boolean;
+  fraud_ops_involved: boolean;
+  closure_notes?: string | null;
+};
+
 const API_BASE = "/backend/api/scam-cases";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -132,43 +247,67 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function listScamCases() {
-  return fetchJson<BackendScamCase[]>(`${API_BASE}/`);
+export function listCases() {
+  return fetchJson<BackendCase[]>(`${API_BASE}/`);
 }
 
-export function createScamCase(payload: ScamCaseIntakePayload) {
-  return fetchJson<BackendScamCase>(`${API_BASE}/`, {
+export function getCase(id: number | string) {
+  return fetchJson<BackendCase>(`${API_BASE}/${id}`);
+}
+
+export function createCase(payload: CaseIntakePayload) {
+  return fetchJson<BackendCase>(`${API_BASE}/`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export function updateScamCaseStatus(id: number, status: BackendStatus) {
-  return fetchJson<BackendScamCase>(`${API_BASE}/${id}/status`, {
+export function updateCaseStatus(id: number, status: BackendStatus) {
+  return fetchJson<BackendCase>(`${API_BASE}/${id}/status`, {
     method: "PUT",
     body: JSON.stringify({ status }),
   });
 }
 
-export function updateScamCaseAssignment(
+export function updateCaseAssignment(
   id: number,
   assigned_owner: string | null,
   assigned_team: string | null
 ) {
-  return fetchJson<BackendScamCase>(`${API_BASE}/${id}/assignment`, {
+  return fetchJson<BackendCase>(`${API_BASE}/${id}/assignment`, {
     method: "PUT",
     body: JSON.stringify({ assigned_owner, assigned_team }),
   });
 }
 
-export function updateScamCaseNotes(id: number, notes: string) {
-  return fetchJson<BackendScamCase>(`${API_BASE}/${id}/notes`, {
+export function updateCaseNotes(id: number, notes: string) {
+  return fetchJson<BackendCase>(`${API_BASE}/${id}/notes`, {
     method: "PUT",
     body: JSON.stringify({ notes }),
   });
 }
 
-export function deleteScamCase(id: number) {
+export function closeCase(id: number, payload: CaseClosurePayload) {
+  return fetchJson<BackendCase>(`${API_BASE}/${id}/close`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function recordCaseAction(id: number, payload: CaseActionPayload) {
+  const actionType =
+    payload.action_type || payload.label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+
+  return fetchJson<BackendCase>(`${API_BASE}/${id}/actions`, {
+    method: "POST",
+    body: JSON.stringify({
+      ...payload,
+      action_type: actionType || "structured_action",
+    }),
+  });
+}
+
+export function deleteCase(id: number) {
   return fetchJson<{ id: number; deleted: boolean }>(`${API_BASE}/${id}`, {
     method: "DELETE",
   });
@@ -179,6 +318,14 @@ export function resetDemoData() {
     `${API_BASE}/reset-demo-data`,
     { method: "POST" }
   );
+}
+
+export function seedDemoData() {
+  return fetchJson<{
+    seeded_cases: number;
+    deleted_cases: number;
+    deleted_action_logs: number;
+  }>(`${API_BASE}/seed-demo-data`, { method: "POST" });
 }
 
 function displayStatus(status: string): QueueCase["status"] {
@@ -195,7 +342,7 @@ function sourceGroup(sourceUnit: string, intakeChannel?: string) {
   return "Fraud ops";
 }
 
-function displayOwner(record: BackendScamCase) {
+function displayOwner(record: BackendCase) {
   const team = record.assigned_team || "";
   if (/fraud/i.test(team)) return "Fraud Ops";
   if (/member protection/i.test(team)) return "Member Protection";
@@ -230,7 +377,7 @@ function actionTitle(actionType: string) {
   return titles[actionType] || actionType.replace(/_/g, " ");
 }
 
-function timelineFromLogs(record: BackendScamCase): TimelineItem[] {
+function timelineFromLogs(record: BackendCase): TimelineItem[] {
   if (!record.action_logs?.length) {
     return [
       {
@@ -250,7 +397,7 @@ function timelineFromLogs(record: BackendScamCase): TimelineItem[] {
   }));
 }
 
-function nextStep(record: BackendScamCase) {
+function nextStep(record: BackendCase) {
   if (record.status === "Closed") return "Closed with documentation";
   if (record.status === "Escalated") return "Supervisor and fraud review underway";
   if (record.status === "In Review") return "Awaiting documented follow-up and next action";
@@ -259,7 +406,7 @@ function nextStep(record: BackendScamCase) {
   return recommended || "Document concern and move to first review.";
 }
 
-export function toQueueCase(record: BackendScamCase): QueueCase {
+export function toQueueCase(record: BackendCase): QueueCase {
   const recommendedActions = record.playbook?.recommended_actions?.length
     ? record.playbook.recommended_actions
     : ["Review member intent and transaction urgency.", "Document observations and preserve timeline context."];
@@ -280,6 +427,18 @@ export function toQueueCase(record: BackendScamCase): QueueCase {
     summary: record.summary || record.narrative,
     note: record.notes || "No operator note has been recorded yet.",
     recommendedActions,
+    intelligence: record.case_intelligence,
+    closure: {
+      outcomeType: record.outcome_type,
+      outcomeLabel: outcomeLabel(record.outcome_type),
+      closureSummary: record.closure_summary || record.closure_notes,
+      estimatedAmountProtected: record.estimated_amount_protected,
+      estimatedAmountLost: record.estimated_amount_lost,
+      trustedContactEngaged: record.trusted_contact_engaged,
+      fraudOpsInvolved: record.fraud_ops_involved,
+      followUpRequired: record.follow_up_required,
+      closedAt: record.closed_at,
+    },
     timeline: timelineFromLogs(record),
   };
 }

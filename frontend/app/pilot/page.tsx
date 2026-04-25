@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function PilotPage() {
   return (
     <main className="page-wrap">
@@ -9,8 +11,8 @@ export default function PilotPage() {
         </p>
 
         <div className="nav-row" style={{ marginTop: "16px" }}>
-          <a href="/ops">View Product Workspace</a>
-          <a href="/reporting">View Reporting</a>
+          <Link href="/ops">View Product Workspace</Link>
+          <Link href="/reporting">View Reporting</Link>
         </div>
       </div>
 
@@ -150,8 +152,8 @@ export default function PilotPage() {
           </p>
 
           <div className="hero-actions">
-            <a href="/ops" className="button">Open Product Workspace</a>
-            <a href="/" className="button button-secondary">Back to Home</a>
+            <Link href="/ops" className="button">Open Product Workspace</Link>
+            <Link href="/" className="button button-secondary">Back to Home</Link>
           </div>
 
           <div className="cta-mini-note">

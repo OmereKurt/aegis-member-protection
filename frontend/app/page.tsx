@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function LandingPage() {
   return (
     <main className="page-wrap">
@@ -24,12 +26,12 @@ export default function LandingPage() {
             </p>
 
             <div className="hero-actions">
-              <a href="/ops" className="button">
+              <Link href="/ops" className="button">
                 Open Workspace
-              </a>
-              <a href="/reporting" className="button button-secondary">
+              </Link>
+              <Link href="/reporting" className="button button-secondary">
                 View Reporting
-              </a>
+              </Link>
             </div>
 
             <div className="hero-proof-row">
@@ -39,31 +41,31 @@ export default function LandingPage() {
             </div>
 
             <div className="workspace-shortcuts">
-              <a href="/ops" className="shortcut-card">
+              <Link href="/ops" className="shortcut-card">
                 <div className="shortcut-label">Workspace</div>
                 <div className="shortcut-title">Active case operations</div>
                 <div className="shortcut-desc">
                   Review the queue, select a case, and act from one workspace.
                 </div>
-              </a>
+              </Link>
 
-              <a href="/reporting" className="shortcut-card">
+              <Link href="/reporting" className="shortcut-card">
                 <div className="shortcut-label">Reporting</div>
                 <div className="shortcut-title">Management visibility</div>
                 <div className="shortcut-desc">
                   Review volume, source-unit mix, outcomes, and workflow
                   bottlenecks.
                 </div>
-              </a>
+              </Link>
 
-              <a href="/cases/new" className="shortcut-card">
+              <Link href="/cases/new" className="shortcut-card">
                 <div className="shortcut-label">Intake</div>
                 <div className="shortcut-title">Structured case entry</div>
                 <div className="shortcut-desc">
                   Capture observations, member context, and escalation signals in
                   a consistent format.
                 </div>
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -274,12 +276,12 @@ export default function LandingPage() {
           </p>
 
           <div className="hero-actions">
-            <a href="/ops" className="button">
+            <Link href="/ops" className="button">
               Open Workspace
-            </a>
-            <a href="/cases/new" className="button button-secondary">
+            </Link>
+            <Link href="/cases/new" className="button button-secondary">
               Start New Intake
-            </a>
+            </Link>
           </div>
 
           <div className="cta-mini-note">

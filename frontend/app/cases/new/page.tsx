@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createScamCase, updateScamCaseNotes } from "../../lib/scamCases";
+import { createCase, updateCaseNotes } from "../../lib/cases";
 
 type IntakeState = {
   memberIdentifier: string;
@@ -357,7 +357,7 @@ export default function NewIntakePage() {
       .join("\n\n");
 
     try {
-      const createdCase = await createScamCase({
+      const createdCase = await createCase({
         customer_identifier: form.memberIdentifier.trim(),
         full_name: form.memberName.trim() || null,
         age_band: ageBandForApi(form.ageBand),
@@ -386,7 +386,7 @@ export default function NewIntakePage() {
       });
 
       if (form.operatorNotes.trim()) {
-        await updateScamCaseNotes(createdCase.id, form.operatorNotes.trim());
+        await updateCaseNotes(createdCase.id, form.operatorNotes.trim());
       }
 
       localStorage.removeItem(DRAFT_STORAGE_KEY);

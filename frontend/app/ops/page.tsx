@@ -1,205 +1,29 @@
 "use client";
 
-/* eslint-disable @next/next/no-html-link-for-pages */
-
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  deleteScamCase,
-  listScamCases,
+  deleteCase,
+  listCases,
   resetDemoData,
+  seedDemoData,
   toQueueCase,
-  updateScamCaseAssignment,
-  updateScamCaseNotes,
-  updateScamCaseStatus,
+  type CaseIntelligence,
   type QueueCase as CaseItem,
-} from "../lib/scamCases";
+} from "../lib/cases";
+import { fallbackCases } from "../lib/fallbackCases";
 
-const initialCases: CaseItem[] = [
-  {
-    id: "AGE-2418",
-    title: "Member requesting repeated cashier’s checks for new online contact",
-    source: "Downtown branch",
-    sourceGroup: "Branch network",
-    member: "Evelyn R.",
-    risk: "High",
-    status: "Escalated",
-    owner: "Fraud Ops",
-    age: "42 min",
-    nextStep: "Supervisor callback + transaction hold review",
-    summary:
-      "Branch staff reported repeated cashier’s check requests tied to a newly introduced online contact. The member appeared uncertain about transaction purpose and deferred to outside instruction.",
-    note:
-      "Coaching behavior, urgency, and transaction persistence suggest a higher-likelihood exploitation pattern requiring supervisor and fraud coordination.",
-    recommendedActions: [
-      "Confirm member intent without third-party influence.",
-      "Review recent transaction attempts and linked channels.",
-      "Escalate to supervisor and fraud operations.",
-      "Document staff observations and preserve timeline details.",
-    ],
-    timeline: [
-      {
-        title: "Case escalated from branch to fraud operations",
-        time: "2:18 PM",
-        body: "Branch staff documented coaching behavior by accompanying individual and requested elevated review.",
-      },
-      {
-        title: "Member outreach queued",
-        time: "2:07 PM",
-        body: "Outbound verification requested before release of additional transaction activity.",
-      },
-      {
-        title: "Urgency score updated to high",
-        time: "1:56 PM",
-        body: "Narrative and transaction pattern triggered elevated handling threshold.",
-      },
-      {
-        title: "Transaction hold review requested",
-        time: "1:41 PM",
-        body: "Team requested verification before additional cashier’s check activity proceeds.",
-      },
-    ],
-  },
-  {
-    id: "AGE-2417",
-    title: "Wire transfer pressure after repeated grandchild emergency calls",
-    source: "Contact center",
-    sourceGroup: "Contact center",
-    member: "Harold T.",
-    risk: "Critical",
-    status: "Review",
-    owner: "Member Protection",
-    age: "19 min",
-    nextStep: "Outbound verification and case note completion",
-    summary:
-      "Member described repeated emergency calls requesting urgent wire transfers for a supposed family crisis. Contact center staff identified pressure tactics and inconsistent story details.",
-    note:
-      "The emotional urgency and repeated contact pattern suggest elevated scam risk and require rapid documented follow-up.",
-    recommendedActions: [
-      "Pause wire activity pending direct verification.",
-      "Call back using existing member contact details.",
-      "Document pressure language and stated beneficiary details.",
-      "Coordinate with fraud or supervisor review if urgency persists.",
-    ],
-    timeline: [
-      {
-        title: "Case routed for member protection review",
-        time: "2:26 PM",
-        body: "Contact center team elevated after repeated emergency-transfer language.",
-      },
-      {
-        title: "Outbound verification requested",
-        time: "2:13 PM",
-        body: "Agent recommended callback using known contact details before any release.",
-      },
-      {
-        title: "Case opened from contact center interaction",
-        time: "1:58 PM",
-        body: "Initial case created after member referenced urgent wire instructions tied to family distress.",
-      },
-    ],
-  },
-  {
-    id: "AGE-2415",
-    title: "Companion attempting to direct withdrawal and override member responses",
-    source: "North branch",
-    sourceGroup: "Branch network",
-    member: "Miriam S.",
-    risk: "High",
-    status: "New",
-    owner: "Queue",
-    age: "1 hr",
-    nextStep: "Branch manager review",
-    summary:
-      "Branch staff observed a companion answering questions for the member and attempting to direct a large withdrawal. The member appeared hesitant and deferred repeatedly.",
-    note:
-      "Observed third-party control behavior indicates a possible exploitation pattern and should be documented before funds leave the account.",
-    recommendedActions: [
-      "Separate member from companion if possible during questioning.",
-      "Document exact staff observations in the case record.",
-      "Escalate for branch manager or fraud review.",
-      "Assess whether additional transactions should be delayed.",
-    ],
-    timeline: [
-      {
-        title: "Case created by branch staff",
-        time: "1:44 PM",
-        body: "Staff escalated concern after repeated third-party interference during withdrawal discussion.",
-      },
-      {
-        title: "Manager review requested",
-        time: "1:37 PM",
-        body: "Branch team flagged the case for supervisory support.",
-      },
-    ],
-  },
-  {
-    id: "AGE-2412",
-    title: "Unusual ACH activity following recent device and contact detail changes",
-    source: "Digital banking",
-    sourceGroup: "Digital banking",
-    member: "James W.",
-    risk: "Medium",
-    status: "Review",
-    owner: "Fraud Ops",
-    age: "2 hrs",
-    nextStep: "Confirm recent profile changes with member",
-    summary:
-      "Recent profile updates were followed by unusual ACH activity. The pattern is not conclusive on its own, but the change sequence warrants a structured review.",
-    note:
-      "This case may reflect account takeover or coached activity and should stay in monitored review until member verification is complete.",
-    recommendedActions: [
-      "Confirm recent device and contact changes with the member.",
-      "Review timing of ACH initiation against profile modifications.",
-      "Document any recent outreach or self-service anomalies.",
-      "Escalate if verification fails or member expresses uncertainty.",
-    ],
-    timeline: [
-      {
-        title: "Fraud operations opened structured review",
-        time: "12:56 PM",
-        body: "Device and contact detail changes preceded unusual ACH behavior.",
-      },
-      {
-        title: "ACH activity linked to profile changes",
-        time: "12:31 PM",
-        body: "System review flagged timing overlap between updates and transaction activity.",
-      },
-    ],
-  },
-  {
-    id: "AGE-2408",
-    title: "Teller concern after repeated high-value withdrawals with inconsistent purpose",
-    source: "West branch",
-    sourceGroup: "Branch network",
-    member: "Sharon K.",
-    risk: "High",
-    status: "Closed",
-    owner: "Branch Ops",
-    age: "Today",
-    nextStep: "Closed with documentation",
-    summary:
-      "A teller documented repeated high-value withdrawals over multiple visits. Follow-up conversations led to a closed case with completed notes and outcome tracking.",
-    note:
-      "The case is closed, but it remains useful as an example of documented intervention and branch-originated visibility.",
-    recommendedActions: [
-      "Retain completed documentation and timeline history.",
-      "Review whether branch coaching or awareness follow-up is needed.",
-      "Use as a reference pattern for similar future cases.",
-    ],
-    timeline: [
-      {
-        title: "Case closed with final documentation",
-        time: "11:42 AM",
-        body: "Branch team completed notes and closure summary after follow-up review.",
-      },
-      {
-        title: "Final member verification completed",
-        time: "10:55 AM",
-        body: "Staff documented the final conversation and outcome before closure.",
-      },
-    ],
-  },
-];
+const defaultIntelligence: CaseIntelligence = {
+  likely_pattern_code: "unknown",
+  likely_pattern: "Unknown / other",
+  signal_strength: "Limited",
+  risk_drivers: ["Review the intake narrative and operator notes."],
+  missing_information: ["Additional structured intelligence is not available for this demo case."],
+  recommended_next_steps: ["Document the member conversation and assign the next owner."],
+  suggested_escalation_path: ["Move the case into active review if staff concern remains."],
+  structured_signals: [],
+  why_high_risk: ["No backend intelligence record is attached to this case."],
+};
 
 function riskBadgeClass(risk: string) {
   switch (risk.toLowerCase()) {
@@ -237,8 +61,8 @@ function percent(count: number, total: number) {
 }
 
 export default function OperationsPage() {
-  const [cases, setCases] = useState<CaseItem[]>(initialCases);
-  const [selectedCaseId, setSelectedCaseId] = useState(initialCases[0].id);
+  const [cases, setCases] = useState<CaseItem[]>(fallbackCases);
+  const [selectedCaseId, setSelectedCaseId] = useState(fallbackCases[0]?.id || "");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [actionInFlight, setActionInFlight] = useState(false);
@@ -253,7 +77,7 @@ export default function OperationsPage() {
   async function loadCases(preferredCaseId?: string) {
     try {
       setIsLoading(true);
-      const records = await listScamCases();
+      const records = await listCases();
       const mapped = records.map(toQueueCase);
       setCases(mapped);
       setLoadError("");
@@ -272,7 +96,7 @@ export default function OperationsPage() {
       }
     } catch {
       setLoadError("Unable to reach the backend. Showing the built-in demo queue.");
-      setCases(initialCases);
+      setCases(fallbackCases);
     } finally {
       setIsLoading(false);
     }
@@ -313,6 +137,10 @@ export default function OperationsPage() {
   const selectedCase =
     filteredQueue.find((item) => item.id === selectedCaseId) ??
     cases.find((item) => item.id === selectedCaseId);
+  const selectedIntelligence = selectedCase?.intelligence || defaultIntelligence;
+  const previewSignals = selectedIntelligence.structured_signals
+    .filter((signal) => signal.present)
+    .slice(0, 2);
 
   const openCases = filteredQueue.filter((item) => item.status !== "Closed").length;
   const escalatedToday = filteredQueue.filter((item) => item.status === "Escalated").length;
@@ -345,90 +173,6 @@ export default function OperationsPage() {
     },
   ];
 
-  async function runCaseAction(action: () => Promise<unknown>, feedback: string) {
-    if (!selectedCase?.backendId) {
-      setActionFeedback("Select a backend-backed case before saving an update.");
-      return;
-    }
-
-    try {
-      setActionInFlight(true);
-      await action();
-      await loadCases(selectedCase.id);
-      setActionFeedback(feedback);
-    } catch {
-      setActionFeedback(
-        "Unable to save that update. Please try again once the backend is reachable."
-      );
-    } finally {
-      setActionInFlight(false);
-    }
-  }
-
-  function handleEscalate() {
-    if (!selectedCase) return;
-
-    runCaseAction(async () => {
-      await updateScamCaseStatus(selectedCase.backendId!, "Escalated");
-      if (selectedCase.owner === "Queue") {
-        await updateScamCaseAssignment(
-          selectedCase.backendId!,
-          "Fraud Ops",
-          "Fraud Operations"
-        );
-      }
-    }, `Escalation recorded for ${selectedCase.caseNumber || selectedCase.id}.`);
-  }
-
-  function handleAssignFraudOps() {
-    if (!selectedCase) return;
-
-    runCaseAction(
-      () =>
-        updateScamCaseAssignment(
-          selectedCase.backendId!,
-          "Fraud Ops",
-          "Fraud Operations"
-        ),
-      `Owner updated to Fraud Ops for ${selectedCase.caseNumber || selectedCase.id}.`
-    );
-  }
-
-  function handleAddNote() {
-    if (!selectedCase) return;
-
-    const timestamp = new Date().toLocaleString([], {
-      dateStyle: "short",
-      timeStyle: "short",
-    });
-    const existingNote =
-      selectedCase.note === "No operator note has been recorded yet."
-        ? ""
-        : selectedCase.note;
-    const nextNote = [existingNote, `Operator note added from workspace on ${timestamp}.`]
-      .filter(Boolean)
-      .join("\n\n");
-
-    runCaseAction(
-      () => updateScamCaseNotes(selectedCase.backendId!, nextNote),
-      `Operator note added to ${selectedCase.caseNumber || selectedCase.id}.`
-    );
-  }
-
-  function handleMarkReviewed() {
-    if (!selectedCase) return;
-
-    if (selectedCase.status === "Closed") {
-      setActionFeedback(`${selectedCase.caseNumber || selectedCase.id} is already closed.`);
-      return;
-    }
-
-    runCaseAction(
-      () => updateScamCaseStatus(selectedCase.backendId!, "In Review"),
-      `Review status updated for ${selectedCase.caseNumber || selectedCase.id}.`
-    );
-  }
-
   async function handleDeleteSelectedCase() {
     if (!selectedCase?.backendId) {
       setActionFeedback("Select a backend-backed case before deleting.");
@@ -442,7 +186,7 @@ export default function OperationsPage() {
         filteredQueue.find((item) => item.id !== deletedId) ??
         cases.find((item) => item.id !== deletedId);
 
-      await deleteScamCase(selectedCase.backendId);
+      await deleteCase(selectedCase.backendId);
       setSelectedCaseId(nextCase?.id || "");
       await loadCases(nextCase?.id);
       setActionFeedback(`Deleted ${selectedCase.caseNumber || selectedCase.id}.`);
@@ -462,6 +206,19 @@ export default function OperationsPage() {
       setActionFeedback("Demo data reset. The shared queue is now clean.");
     } catch {
       setActionFeedback("Unable to reset demo data right now.");
+    } finally {
+      setActionInFlight(false);
+    }
+  }
+
+  async function handleSeedDemoData() {
+    try {
+      setActionInFlight(true);
+      const result = await seedDemoData();
+      await loadCases();
+      setActionFeedback(`Seeded ${result.seeded_cases} curated demo cases for Reporting and screenshots.`);
+    } catch {
+      setActionFeedback("Unable to seed demo data right now.");
     } finally {
       setActionInFlight(false);
     }
@@ -516,12 +273,12 @@ export default function OperationsPage() {
               </div>
 
               <div className="button-row">
-                <a href="/cases/new" className="button">
+                <Link href="/cases/new" className="button">
                   Start New Intake
-                </a>
-                <a href="/reporting" className="button button-secondary">
+                </Link>
+                <Link href="/reporting" className="button button-secondary">
                   Open Reporting
-                </a>
+                </Link>
               </div>
             </div>
 
@@ -620,12 +377,12 @@ export default function OperationsPage() {
                               Start a new intake to create the first case and begin the workflow.
                             </div>
                             <div className="button-row" style={{ marginTop: 14 }}>
-                              <a href="/cases/new" className="button">
+                              <Link href="/cases/new" className="button">
                                 Start New Intake
-                              </a>
-                              <a href="/reporting" className="button button-secondary">
+                              </Link>
+                              <Link href="/reporting" className="button button-secondary">
                                 Open Reporting
-                              </a>
+                              </Link>
                             </div>
                           </div>
                         ) : (
@@ -645,7 +402,7 @@ export default function OperationsPage() {
                       >
                         <td>
                           <div className="queue-title">
-                            <strong>{item.title}</strong>
+                            <Link href={`/cases/${item.backendId || item.id}`}>{item.title}</Link>
                             <span className="queue-subtext">
                               {item.caseNumber || item.id} · {item.member}
                             </span>
@@ -675,14 +432,14 @@ export default function OperationsPage() {
         </div>
 
         <aside className="ops-side-column">
-          <div className="workspace-hero sticky-case-panel">
+          <div className="workspace-hero sticky-case-panel ops-quick-preview">
             {selectedCase ? (
               <>
                 <div className="workspace-title-row">
                   <div className="workspace-title-block">
-                    <h2>Focused case view</h2>
+                    <h2>Quick preview</h2>
                     <p className="workspace-subtle">
-                      Live case details driven by the selected queue row.
+                      Select and open the full workspace when ready to act.
                     </p>
                   </div>
 
@@ -713,9 +470,46 @@ export default function OperationsPage() {
                   </div>
 
                   <div className="workspace-meta-item">
-                    <div className="label">Next step</div>
-                    <div className="value">{selectedCase.nextStep}</div>
+                    <div className="label">Likely pattern</div>
+                    <div className="value">{selectedIntelligence.likely_pattern}</div>
                   </div>
+                </div>
+
+                <div className="focused-case-stack">
+                  <div>
+                    <p className="workspace-subtle">{selectedCase.summary}</p>
+                  </div>
+
+                  {previewSignals.length ? (
+                    <div className="ops-preview-signal-list">
+                      {previewSignals.map((signal) => (
+                        <div className="ops-preview-signal" key={signal.label}>
+                          <span>{signal.label}</span>
+                          <strong>{signal.severity}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {selectedCase.status === "Closed" ? (
+                    <div className="closure-summary-box">
+                      <h3 className="workspace-section-title">Closure outcome</h3>
+                      <div className="reporting-row">
+                        <div className="reporting-row-label">Outcome</div>
+                        <div className="reporting-row-value">{selectedCase.closure?.outcomeLabel}</div>
+                      </div>
+                      <p className="workspace-subtle">
+                        {selectedCase.closure?.closureSummary || "No closure summary recorded."}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <Link
+                    href={`/cases/${selectedCase.backendId || selectedCase.id}`}
+                    className="button open-full-case-button"
+                  >
+                    Open Full Case
+                  </Link>
                 </div>
 
                 <div className="action-grid">
@@ -736,62 +530,14 @@ export default function OperationsPage() {
                     >
                       Reset Demo Data
                     </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="button button-compact"
-                    onClick={handleEscalate}
-                    disabled={actionInFlight}
-                  >
-                    Escalate case
-                  </button>
-
-                  <button
-                    type="button"
-                    className="button button-secondary button-compact"
-                    onClick={handleAssignFraudOps}
-                    disabled={actionInFlight}
-                  >
-                    Assign to Fraud Ops
-                  </button>
-
-                  <button
-                    type="button"
-                    className="button button-secondary button-compact"
-                    onClick={handleAddNote}
-                    disabled={actionInFlight}
-                  >
-                    Add operator note
-                  </button>
-
-                  <button
-                    type="button"
-                    className="button button-secondary button-compact"
-                    onClick={handleMarkReviewed}
-                    disabled={actionInFlight}
-                  >
-                    Mark reviewed
-                  </button>
-                </div>
-
-                <div className="focused-case-stack">
-                  <div>
-                    <h3 className="workspace-section-title">Case summary</h3>
-                    <p className="workspace-subtle">{selectedCase.summary}</p>
-                  </div>
-
-                  <div className="workspace-callout">
-                    <strong>Operator note:</strong> {selectedCase.note}
-                  </div>
-
-                  <div>
-                    <h3 className="workspace-section-title">Recommended actions</h3>
-                    <ul className="workspace-list">
-                      {selectedCase.recommendedActions.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
+                    <button
+                      type="button"
+                      className="button button-secondary button-compact"
+                      onClick={handleSeedDemoData}
+                      disabled={actionInFlight}
+                    >
+                      Seed Demo Data
+                    </button>
                   </div>
                 </div>
               </>
@@ -806,12 +552,12 @@ export default function OperationsPage() {
                 </div>
 
                 <div className="button-row">
-                  <a href="/cases/new" className="button">
+                  <Link href="/cases/new" className="button">
                     Start New Intake
-                  </a>
-                  <a href="/reporting" className="button button-secondary">
+                  </Link>
+                  <Link href="/reporting" className="button button-secondary">
                     Open Reporting
-                  </a>
+                  </Link>
                 </div>
 
                 <div className="demo-cleanup-inline">
@@ -822,6 +568,14 @@ export default function OperationsPage() {
                     disabled={actionInFlight}
                   >
                     Reset Demo Data
+                  </button>
+                  <button
+                    type="button"
+                    className="button button-secondary button-compact"
+                    onClick={handleSeedDemoData}
+                    disabled={actionInFlight}
+                  >
+                    Seed Demo Data
                   </button>
                 </div>
               </div>
@@ -849,9 +603,9 @@ export default function OperationsPage() {
           <div className="workspace-panel">
             <h3 className="workspace-section-title">Operator shortcuts</h3>
             <div className="nav-row">
-              <a href="/cases/new">New intake</a>
-              <a href="/reporting">Reporting</a>
-              <a href="/pilot">Pilot program</a>
+              <Link href="/cases/new">New intake</Link>
+              <Link href="/reporting">Reporting</Link>
+              <Link href="/pilot">Pilot program</Link>
             </div>
           </div>
         </aside>

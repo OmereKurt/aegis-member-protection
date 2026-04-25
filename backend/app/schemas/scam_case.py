@@ -1,13 +1,31 @@
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 AgeBand = Literal["under_60", "60_69", "70_79", "80_plus", "unknown"]
 IntakeChannel = Literal["branch", "phone", "family_report", "advisor_report", "online", "other"]
 TransactionType = Literal["wire", "ach", "cash_withdrawal", "check", "card", "crypto", "gift_cards", "other"]
 StatusType = Literal["New", "In Review", "Escalated", "Closed"]
-OutcomeType = Literal["customer_protected", "funds_blocked", "funds_lost", "false_alarm", "follow_up_required", "unknown"]
+OutcomeType = Literal[
+    "member_protected",
+    "funds_blocked_or_held",
+    "trusted_contact_engaged",
+    "fraud_ops_escalation_completed",
+    "monitoring_only",
+    "false_concern_no_exploitation_found",
+    "funds_sent_loss_occurred",
+    "customer_unreachable",
+    "other",
+    "customer_protected",
+    "funds_blocked",
+    "funds_lost",
+    "false_alarm",
+    "follow_up_required",
+    "unknown",
+]
+
+MAX_TRACKED_AMOUNT = 1_000_000
 
 
 def _first_present(data: dict, *keys: str):
@@ -226,7 +244,40 @@ class CaseAssignmentUpdate(BaseModel):
 
 class CaseCloseUpdate(BaseModel):
     outcome_type: OutcomeType
-    closure_notes: str
+    closure_summary: str
+    follow_up_required: bool
+    estimated_amount_protected: Optional[float] = None
+    estimated_amount_lost: Optional[float] = None
+    trusted_contact_engaged: bool = False
+    fraud_ops_involved: bool = False
+    closure_notes: Optional[str] = None
+
+    @field_validator("estimated_amount_protected", "estimated_amount_lost", mode="before")
+    @classmethod
+    def normalize_tracked_amount(cls, value):
+        if value in (None, ""):
+            return None
+
+        amount = float(value)
+        if amount < 0:
+            raise ValueError("Amount must be zero or greater")
+        if amount > MAX_TRACKED_AMOUNT:
+            raise ValueError(f"Amount must be ${MAX_TRACKED_AMOUNT:,.0f} or less")
+
+        return round(amount, 2)
+
+
+class CaseActionUpdate(BaseModel):
+    action_type: str = "structured_action"
+    label: str
+    details: Optional[str] = None
+    status: Optional[StatusType] = None
+    assigned_owner: Optional[str] = None
+    assigned_team: Optional[str] = None
+    notes: Optional[str] = None
+    money_already_left: Optional[bool] = None
+    outcome_type: Optional[OutcomeType] = None
+    closure_notes: Optional[str] = None
 
 
 class ActionLogResponse(BaseModel):
@@ -278,9 +329,17 @@ class ScamCaseResponse(BaseModel):
     urgency_reasons: list[str]
     risk_factors: dict[str, bool]
     playbook: dict[str, Any]
+    case_intelligence: dict[str, Any]
 
     notes: str
     outcome_type: Optional[str] = None
     closure_notes: Optional[str] = None
+    closure_summary: Optional[str] = None
+    estimated_amount_protected: Optional[float] = None
+    estimated_amount_lost: Optional[float] = None
+    trusted_contact_engaged: Optional[bool] = None
+    fraud_ops_involved: Optional[bool] = None
+    follow_up_required: Optional[bool] = None
+    closed_at: Optional[str] = None
 
     action_logs: list[ActionLogResponse]
