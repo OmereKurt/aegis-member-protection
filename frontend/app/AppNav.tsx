@@ -8,7 +8,7 @@ const navItems = [
   { href: "/ops", label: "Operations", match: "ops" },
   { href: "/reporting", label: "Reporting", match: "reporting" },
   { href: "/pilot", label: "Pilot", match: "pilot" },
-  { href: "/cases/new", label: "New Intake", match: "new-intake" },
+  { href: "/cases/new", label: "Intake", match: "new-intake" },
 ];
 
 function isActive(pathname: string, match: string) {

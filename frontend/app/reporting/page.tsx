@@ -226,26 +226,28 @@ export default function ReportingPage() {
 
   return (
     <main className="page-wrap reporting-page-wrap reporting-v2-page">
-      <section className="page-header">
-        <div className="page-kicker">Management reporting</div>
-        <h1 className="page-title">Operational reporting</h1>
-        <p className="page-subtitle">
-          Live management view of case volume, risk concentration, playbook progress, and intervention outcomes.
-        </p>
-      </section>
-
-      <section className="report-toolbar">
-        <div className="report-live-pill">
-          {isLoading ? "Loading live backend data" : "Live view · backend case data"}
+      <section className="page-header reporting-console-header">
+        <div>
+          <div className="page-kicker">Management reporting</div>
+          <h1 className="page-title">Operational reporting</h1>
+          <p className="page-subtitle">
+            Live management view of case volume, risk concentration, playbook progress, and intervention outcomes.
+          </p>
         </div>
 
-        <div className="button-row">
-          <Link href="/ops" className="button button-secondary">
-            Back to Workspace
-          </Link>
-          <Link href="/cases/new" className="button">
-            Start New Intake
-          </Link>
+        <div className="reporting-console-actions">
+          <div className="report-live-pill">
+            {isLoading ? "Loading live backend data" : "Live view · backend case data"}
+          </div>
+
+          <div className="button-row">
+            <Link href="/ops" className="button button-secondary">
+              Back to Workspace
+            </Link>
+            <Link href="/cases/new" className="button">
+              Start New Intake
+            </Link>
+          </div>
         </div>
       </section>
 

@@ -459,9 +459,6 @@ export default function CaseDetailPage() {
         <div>
           <div className="page-kicker">Full case workspace</div>
           <h1 className="page-title">{caseData?.title || "Member protection case"}</h1>
-          <p className="page-subtitle">
-            Work the case with the full record, intelligence, actions, history, and closure workflow.
-          </p>
         </div>
         <div className="button-row full-case-header-actions">
           <Link href="/ops" className="button button-secondary">
@@ -479,7 +476,7 @@ export default function CaseDetailPage() {
           <section className="workspace-hero full-case-command-bar">
             <div className="workspace-title-row">
               <div className="workspace-title-block">
-                <h2>{caseData.case_id}</h2>
+                <h2>Case command</h2>
               </div>
               <div className="inline-badge-row">
                 <span className={badgeClass("risk", caseData.urgency)}>{caseData.urgency}</span>
@@ -488,6 +485,10 @@ export default function CaseDetailPage() {
             </div>
 
             <div className="workspace-meta-grid full-case-meta-grid">
+              <div className="workspace-meta-item">
+                <div className="label">Case ID</div>
+                <div className="value">{caseData.case_id}</div>
+              </div>
               <div className="workspace-meta-item">
                 <div className="label">Likely pattern</div>
                 <div className="value">{intelligence?.likely_pattern || caseData.scam_type}</div>
@@ -507,7 +508,6 @@ export default function CaseDetailPage() {
                 <div className="value">{queueCase.nextStep}</div>
               </div>
             </div>
-            <p className="workspace-subtle full-case-command-summary">{caseData.summary}</p>
           </section>
 
           <section className="full-case-workspace-grid">

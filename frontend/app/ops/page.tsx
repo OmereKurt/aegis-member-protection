@@ -11,7 +11,6 @@ import {
   type CaseIntelligence,
   type QueueCase as CaseItem,
 } from "../lib/cases";
-import { fallbackCases } from "../lib/fallbackCases";
 
 const defaultIntelligence: CaseIntelligence = {
   likely_pattern_code: "unknown",
@@ -61,8 +60,8 @@ function percent(count: number, total: number) {
 }
 
 export default function OperationsPage() {
-  const [cases, setCases] = useState<CaseItem[]>(fallbackCases);
-  const [selectedCaseId, setSelectedCaseId] = useState(fallbackCases[0]?.id || "");
+  const [cases, setCases] = useState<CaseItem[]>([]);
+  const [selectedCaseId, setSelectedCaseId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [actionInFlight, setActionInFlight] = useState(false);
@@ -95,8 +94,9 @@ export default function OperationsPage() {
         setSelectedCaseId("");
       }
     } catch {
-      setLoadError("Unable to reach the backend. Showing the built-in demo queue.");
-      setCases(fallbackCases);
+      setLoadError("System connection issue. Live case data is currently unavailable.");
+      setCases([]);
+      setSelectedCaseId("");
     } finally {
       setIsLoading(false);
     }
@@ -141,6 +141,7 @@ export default function OperationsPage() {
   const previewSignals = selectedIntelligence.structured_signals
     .filter((signal) => signal.present)
     .slice(0, 2);
+  const backendUnavailable = Boolean(loadError);
 
   const openCases = filteredQueue.filter((item) => item.status !== "Closed").length;
   const escalatedToday = filteredQueue.filter((item) => item.status === "Escalated").length;
@@ -289,7 +290,23 @@ export default function OperationsPage() {
             ) : null}
 
             {loadError ? (
-              <div className="ops-inline-banner">{loadError}</div>
+              <div className="system-state-panel">
+                <div>
+                  <div className="system-state-kicker">Backend unavailable</div>
+                  <h3>Live operations data cannot be loaded</h3>
+                  <p>
+                    The queue is intentionally blank until the FastAPI backend responds. Demo utilities remain available below for local setup, but no fallback cases are being shown as live data.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => void loadCases()}
+                  disabled={isLoading}
+                >
+                  Retry Connection
+                </button>
+              </div>
             ) : null}
 
             {actionFeedback ? (
@@ -370,7 +387,14 @@ export default function OperationsPage() {
                   {filteredQueue.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="queue-empty">
-                        {cases.length === 0 ? (
+                        {backendUnavailable ? (
+                          <div>
+                            <strong>Live queue unavailable.</strong>
+                            <div className="muted" style={{ marginTop: 8 }}>
+                              Check the backend service, then retry the connection.
+                            </div>
+                          </div>
+                        ) : cases.length === 0 ? (
                           <div>
                             <strong>No active cases yet.</strong>
                             <div className="muted" style={{ marginTop: 8 }}>
@@ -511,35 +535,6 @@ export default function OperationsPage() {
                     Open Full Case
                   </Link>
                 </div>
-
-                <div className="action-grid">
-                  <div className="demo-cleanup-inline">
-                    <button
-                      type="button"
-                      className="button button-secondary button-compact"
-                      onClick={handleDeleteSelectedCase}
-                      disabled={actionInFlight || !selectedCase}
-                    >
-                      Delete selected case
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-secondary button-compact"
-                      onClick={handleResetDemoData}
-                      disabled={actionInFlight}
-                    >
-                      Reset Demo Data
-                    </button>
-                    <button
-                      type="button"
-                      className="button button-secondary button-compact"
-                      onClick={handleSeedDemoData}
-                      disabled={actionInFlight}
-                    >
-                      Seed Demo Data
-                    </button>
-                  </div>
-                </div>
               </>
             ) : (
               <div className="focused-case-stack">
@@ -558,25 +553,6 @@ export default function OperationsPage() {
                   <Link href="/reporting" className="button button-secondary">
                     Open Reporting
                   </Link>
-                </div>
-
-                <div className="demo-cleanup-inline">
-                  <button
-                    type="button"
-                    className="button button-secondary button-compact"
-                    onClick={handleResetDemoData}
-                    disabled={actionInFlight}
-                  >
-                    Reset Demo Data
-                  </button>
-                  <button
-                    type="button"
-                    className="button button-secondary button-compact"
-                    onClick={handleSeedDemoData}
-                    disabled={actionInFlight}
-                  >
-                    Seed Demo Data
-                  </button>
                 </div>
               </div>
             )}
@@ -606,6 +582,39 @@ export default function OperationsPage() {
               <Link href="/cases/new">New intake</Link>
               <Link href="/reporting">Reporting</Link>
               <Link href="/pilot">Pilot program</Link>
+            </div>
+          </div>
+
+          <div className="workspace-panel admin-utility-panel">
+            <h3 className="workspace-section-title">Demo / admin utilities</h3>
+            <p className="workspace-subtle">
+              Local setup controls for clearing or loading curated demo cases.
+            </p>
+            <div className="demo-cleanup-inline">
+              <button
+                type="button"
+                className="button button-secondary button-compact"
+                onClick={handleDeleteSelectedCase}
+                disabled={actionInFlight || !selectedCase?.backendId}
+              >
+                Delete selected case
+              </button>
+              <button
+                type="button"
+                className="button button-secondary button-compact"
+                onClick={handleResetDemoData}
+                disabled={actionInFlight}
+              >
+                Reset Demo Data
+              </button>
+              <button
+                type="button"
+                className="button button-secondary button-compact"
+                onClick={handleSeedDemoData}
+                disabled={actionInFlight}
+              >
+                Seed Demo Data
+              </button>
             </div>
           </div>
         </aside>
