@@ -242,8 +242,8 @@ export default function ReportingPage() {
   const emptyState = !isLoading && cases.length === 0;
 
   return (
-    <main className="page-wrap reporting-page-wrap reporting-v2-page">
-      <section className="page-header reporting-console-header">
+    <main className="page-wrap reporting-page-wrap reporting-v2-page workspace-shell">
+      <section className="page-header reporting-console-header console-page-header">
         <div>
           <div className="page-kicker">Management reporting</div>
           <h1 className="page-title">Operational reporting</h1>
@@ -275,7 +275,7 @@ export default function ReportingPage() {
         </div>
       ) : null}
 
-      <section className="management-briefing">
+      <section className="management-briefing console-briefing-band">
         <div className="briefing-lead">
           <div className="page-kicker">Executive summary</div>
           <h2>{analytics.highCriticalCases ? `${analytics.highCriticalCases} elevated-risk cases need attention` : "No elevated-risk cases currently recorded"}</h2>
@@ -301,50 +301,52 @@ export default function ReportingPage() {
         </div>
       </section>
 
-      <section className="report-section">
-        <SectionHeader
-          eyebrow="Operational attention"
-          title="Where the workflow needs management focus"
-          description="Open cases, escalations, and playbook gaps that can slow intervention."
-        />
-        <div className="attention-grid">
-          <AttentionCard label="Open cases" value={analytics.openCases} detail={`${analytics.escalatedCases} escalated`} />
-          <AttentionCard label="High/Critical share" value={`${analytics.highCriticalShare}%`} detail={`${analytics.highCriticalCases} elevated-risk cases`} />
-          <AttentionCard label="Playbook progress" value={`${analytics.playbookProgress}%`} detail="Cases with completed playbook work" />
-          <AttentionCard label="Follow-up required" value={analytics.followUpRequired} detail="Needs post-closure or open follow-up" />
-        </div>
-      </section>
-
-      <section className="report-section">
-        <SectionHeader
-          eyebrow="Outcome performance"
-          title="What outcomes are being achieved"
-          description="Closure results, protected/lost estimates, and quality signals from structured outcomes."
-        />
-        <div className="outcome-console-panel">
-          <div className="compact-metric-strip outcome-metric-strip">
-            <MetricPill label="Protected" value={currency(analytics.protectedAmount)} />
-            <MetricPill label="Lost" value={currency(analytics.lostAmount)} />
-            <MetricPill label="Closure rate" value={`${analytics.closureRate}%`} />
-            <MetricPill label="Follow-up" value={analytics.followUpRequired} />
+      <section className="report-dashboard-primary">
+        <section className="report-section dashboard-module">
+          <SectionHeader
+            eyebrow="Operational attention"
+            title="Where the workflow needs management focus"
+            description="Open cases, escalations, and playbook gaps that can slow intervention."
+          />
+          <div className="attention-grid attention-table">
+            <AttentionCard label="Open cases" value={analytics.openCases} detail={`${analytics.escalatedCases} escalated`} />
+            <AttentionCard label="High/Critical share" value={`${analytics.highCriticalShare}%`} detail={`${analytics.highCriticalCases} elevated-risk cases`} />
+            <AttentionCard label="Playbook progress" value={`${analytics.playbookProgress}%`} detail="Cases with completed playbook work" />
+            <AttentionCard label="Follow-up required" value={analytics.followUpRequired} detail="Needs post-closure or open follow-up" />
           </div>
+        </section>
 
-          <div className="outcome-console-grid">
-            <CompositionCard
-              title="Outcome mix"
-              description={analytics.protectedAmount >= analytics.lostAmount ? "Protected amount exceeds recorded loss." : "Recorded loss exceeds protected amount."}
-              rows={analytics.outcomeRows}
-              emptyText="No structured closure outcomes recorded yet."
-            />
-            <div className="reporting-list outcome-rows compact-outcome-rows">
-            <InsightRow label="Closed cases" value={`${analytics.closedCases} (${analytics.closureRate}%)`} />
-            <InsightRow label="Member protected" value={analytics.memberProtected} />
-            <InsightRow label="Funds sent / loss occurred" value={analytics.fundsLost} />
-            <InsightRow label="Trusted contact rate" value={`${analytics.trustedContactRate}%`} />
-            <InsightRow label="Fraud ops involvement" value={`${analytics.fraudOpsRate}%`} />
+        <section className="report-section dashboard-module">
+          <SectionHeader
+            eyebrow="Outcome performance"
+            title="What outcomes are being achieved"
+            description="Closure results, protected/lost estimates, and quality signals from structured outcomes."
+          />
+          <div className="outcome-console-panel analytics-tile">
+            <div className="compact-metric-strip outcome-metric-strip">
+              <MetricPill label="Protected" value={currency(analytics.protectedAmount)} />
+              <MetricPill label="Lost" value={currency(analytics.lostAmount)} />
+              <MetricPill label="Closure rate" value={`${analytics.closureRate}%`} />
+              <MetricPill label="Follow-up" value={analytics.followUpRequired} />
+            </div>
+
+            <div className="outcome-console-grid">
+              <CompositionCard
+                title="Outcome mix"
+                description={analytics.protectedAmount >= analytics.lostAmount ? "Protected amount exceeds recorded loss." : "Recorded loss exceeds protected amount."}
+                rows={analytics.outcomeRows}
+                emptyText="No structured closure outcomes recorded yet."
+              />
+              <div className="reporting-list outcome-rows compact-outcome-rows">
+                <InsightRow label="Closed cases" value={`${analytics.closedCases} (${analytics.closureRate}%)`} />
+                <InsightRow label="Member protected" value={analytics.memberProtected} />
+                <InsightRow label="Funds sent / loss occurred" value={analytics.fundsLost} />
+                <InsightRow label="Trusted contact rate" value={`${analytics.trustedContactRate}%`} />
+                <InsightRow label="Fraud ops involvement" value={`${analytics.fraudOpsRate}%`} />
+              </div>
             </div>
           </div>
-        </div>
+        </section>
       </section>
 
       <section className="report-section">
@@ -353,7 +355,7 @@ export default function ReportingPage() {
           title="Where cases are coming from and what they look like"
           description="Source concentration, likely scam pattern, and high-risk distribution."
         />
-        <div className="analytics-console-grid">
+        <div className="analytics-console-grid dashboard-module-grid">
           <div className="analytics-wide-panel">
             <BarCard title="Likely scam patterns" description="Ranked by deterministic case intelligence classification." rows={analytics.patternRows} />
           </div>
@@ -447,7 +449,7 @@ export default function ReportingPage() {
 
 function MetricPill({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="metric-pill">
+    <div className="metric-pill analytics-tile">
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -465,7 +467,7 @@ function InsightRow({ label, value }: { label: string; value: string | number })
 
 function AttentionCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
-    <div className="attention-card">
+    <div className="attention-card attention-row">
       <span>{label}</span>
       <strong>{value}</strong>
       <p>{detail}</p>
@@ -505,7 +507,7 @@ function BarCard({
   const max = maxValue(rows);
 
   return (
-    <div className="chart-card">
+    <div className="chart-card chart-tile">
       <h3>{title}</h3>
       <p>{description}</p>
       <div className="bar-list">
@@ -549,7 +551,7 @@ function CompositionCard({
   const chartRows = remainingValue > 0 ? [...visibleRows, { label: "Other", value: remainingValue }] : visibleRows;
 
   return (
-    <div className="composition-card">
+    <div className="composition-card chart-tile">
       <div>
         <h3>{title}</h3>
         <p>{description}</p>

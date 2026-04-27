@@ -402,7 +402,7 @@ export default function NewIntakePage() {
   };
 
   return (
-    <main className="page-wrap intake-page">
+    <main className="page-wrap intake-page workspace-shell">
       <section className="intake-progress">
         {stepSections.map((step) => (
           <button
@@ -420,7 +420,7 @@ export default function NewIntakePage() {
         ))}
       </section>
 
-      <section className="intake-header">
+      <section className="intake-header console-page-header">
         <div>
           <div className="page-eyebrow">NEW INTAKE</div>
           <h1>New Member Protection Intake</h1>
@@ -726,7 +726,7 @@ export default function NewIntakePage() {
           </section>
         </div>
 
-        <aside className="intake-sidebar">
+        <aside className="intake-sidebar inspector-panel">
           <section className="intake-side-card">
             <div className="side-card-top">
               <div>

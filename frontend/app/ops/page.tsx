@@ -226,17 +226,23 @@ export default function OperationsPage() {
   }
 
   return (
-    <main className="page-wrap ops-page-wrap">
-      <section className="page-header">
-        <div className="page-kicker">Operations workspace</div>
-        <h1 className="page-title">Case queue and operator workspace</h1>
-        <p className="page-subtitle">
-          Review active cases, assess urgency, coordinate escalation, and keep
-          ownership clear across branch, contact center, and fraud operations.
-        </p>
+    <main className="page-wrap ops-page-wrap workspace-shell">
+      <section className="page-header console-page-header">
+        <div>
+          <div className="page-kicker">Operations workspace</div>
+          <h1 className="page-title">Case queue and operator workspace</h1>
+          <p className="page-subtitle">
+            Review active cases, assess urgency, coordinate escalation, and keep
+            ownership clear across branch, contact center, and fraud operations.
+          </p>
+        </div>
+        <div className="console-header-status">
+          <span>{filteredQueue.length}</span>
+          cases shown
+        </div>
       </section>
 
-      <section className="kpi-strip">
+      <section className="kpi-strip metric-strip">
         <div className="kpi-card">
           <div className="kpi-label">Open cases</div>
           <div className="kpi-value">{openCases}</div>
@@ -264,10 +270,13 @@ export default function OperationsPage() {
 
       <section className="ops-dashboard-grid">
         <div className="ops-main-column">
-          <div className="ops-surface">
-            <div className="ops-toolbar-top">
+          <div className="ops-surface console-panel queue-console-panel">
+            <div className="ops-toolbar-top page-command-bar data-toolbar">
               <div className="ops-toolbar-title">
-                <h2>Active queue</h2>
+                <h2>
+                  Active queue
+                  <span className="queue-result-count">{filteredQueue.length} visible / {cases.length} total</span>
+                </h2>
                 <p>
                   Select a case to update the focused workspace on the right.
                 </p>
@@ -313,7 +322,7 @@ export default function OperationsPage() {
               <div className="ops-inline-banner">{actionFeedback}</div>
             ) : null}
 
-            <div className="ops-filter-grid">
+            <div className="ops-filter-grid data-toolbar queue-filter-bar">
               <div className="field-group">
                 <label>Source unit</label>
                 <select
@@ -370,8 +379,8 @@ export default function OperationsPage() {
               </div>
             </div>
 
-            <div className="queue-table-wrap">
-              <table className="queue-table">
+            <div className="queue-table-wrap table-console-frame">
+              <table className="queue-table dense-table">
                 <thead>
                   <tr>
                     <th>Case</th>
@@ -456,7 +465,7 @@ export default function OperationsPage() {
         </div>
 
         <aside className="ops-side-column">
-          <div className="workspace-hero ops-quick-preview">
+          <div className="workspace-hero ops-quick-preview inspector-panel">
             {selectedCase ? (
               <>
                 <div className="workspace-title-row">
@@ -560,8 +569,8 @@ export default function OperationsPage() {
         </aside>
       </section>
 
-      <section className="ops-support-grid">
-        <div className="workspace-panel">
+      <section className="ops-support-grid support-console-grid">
+        <div className="workspace-panel support-panel">
           <h3 className="workspace-section-title">Recent activity</h3>
           <div className="timeline-list">
             {selectedCase ? (
@@ -578,7 +587,7 @@ export default function OperationsPage() {
           </div>
         </div>
 
-        <div className="workspace-panel">
+        <div className="workspace-panel support-panel">
           <h3 className="workspace-section-title">Queue guidance</h3>
           <div className="ops-guidance-list">
             <div className="readonly-box">High and critical cases should move from intake to first review with minimal delay.</div>
@@ -587,7 +596,7 @@ export default function OperationsPage() {
           </div>
         </div>
 
-        <div className="workspace-panel">
+        <div className="workspace-panel support-panel">
           <h3 className="workspace-section-title">Source-unit snapshot</h3>
           <div className="reporting-list">
             {sourceSnapshot.map((item) => (
@@ -599,7 +608,7 @@ export default function OperationsPage() {
           </div>
         </div>
 
-        <div className="workspace-panel admin-utility-panel">
+        <div className="workspace-panel admin-utility-panel utility-panel">
           <h3 className="workspace-section-title">Demo / admin utilities</h3>
           <p className="workspace-subtle">Local setup controls for clearing or loading curated demo cases.</p>
           <div className="demo-cleanup-inline">

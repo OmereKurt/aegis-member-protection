@@ -454,8 +454,8 @@ export default function CaseDetailPage() {
   }
 
   return (
-    <main className="page-wrap full-case-page-wrap">
-      <section className="page-header full-case-page-header">
+    <main className="page-wrap full-case-page-wrap workspace-shell investigation-console">
+      <section className="page-header full-case-page-header console-page-header">
         <div>
           <div className="page-kicker">Full case workspace</div>
           <h1 className="page-title">{caseData?.title || "Member protection case"}</h1>
@@ -473,7 +473,7 @@ export default function CaseDetailPage() {
 
       {caseData && queueCase ? (
         <>
-          <section className="workspace-hero full-case-command-bar">
+          <section className="workspace-hero full-case-command-bar page-command-bar">
             <div className="workspace-title-row">
               <div className="workspace-title-block">
                 <h2>Case command</h2>
@@ -512,7 +512,7 @@ export default function CaseDetailPage() {
 
           <section className="full-case-workspace-grid">
             <div className="full-case-main-column evidence-column">
-              <section className="workspace-panel evidence-panel">
+              <section className="workspace-panel evidence-panel console-panel">
                 <h3 className="workspace-section-title">Overview</h3>
                 <div className="workspace-meta-grid">
                   <div className="workspace-meta-item">
@@ -550,7 +550,7 @@ export default function CaseDetailPage() {
                 </div>
               </section>
 
-              <section className="workspace-panel evidence-panel">
+              <section className="workspace-panel evidence-panel console-panel">
                 <h3 className="workspace-section-title">Signals</h3>
                 <div className="signal-list full-case-signal-grid">
                   {intelligence?.structured_signals?.map((signal) => (
@@ -583,7 +583,7 @@ export default function CaseDetailPage() {
                 </div>
               </section>
 
-              <section className="workspace-panel evidence-panel timeline-panel">
+              <section className="workspace-panel evidence-panel timeline-panel console-panel">
                 <h3 className="workspace-section-title">History</h3>
                 <div className="timeline-list">
                   {caseData.action_logs.length ? (
@@ -601,7 +601,7 @@ export default function CaseDetailPage() {
               </section>
             </div>
 
-            <aside className="full-case-side-column operator-cockpit">
+            <aside className="full-case-side-column operator-cockpit inspector-panel">
               <section className="workspace-panel cockpit-panel cockpit-intelligence">
                 <h3 className="workspace-section-title">Case Intelligence</h3>
                 <div className="reporting-list">
