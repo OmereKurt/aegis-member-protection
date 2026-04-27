@@ -24,6 +24,11 @@ Backend:
 | --- | --- | --- |
 | `DATABASE_URL` | SQLAlchemy database URL | If unset, backend uses SQLite at `sqlite:///./startup_scam_ops.db` |
 | `FRONTEND_URL` | CORS allowlist URL for the frontend | `http://localhost:3000` |
+| `JWT_SECRET` | HMAC secret used to sign local JWT session cookies | Required outside throwaway local demos |
+| `SESSION_COOKIE_NAME` | HttpOnly session cookie name | `aegis_session` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Session lifetime in minutes | `480` |
+| `AUTH_DEMO_USERS_ENABLED` | Seeds deterministic local demo users on startup | `true` |
+| `SESSION_COOKIE_SECURE` | Sets the cookie `Secure` flag for HTTPS deployments | `false` locally |
 | `ENVIRONMENT` | Environment label for local/CI/Docker clarity | Optional |
 
 Frontend:
@@ -45,6 +50,26 @@ Docker Compose:
 | `FRONTEND_PORT` | Host port for Next.js | `3000` |
 
 Use `.env.example`, `backend/.env.example`, and `frontend/.env.example` as templates. Do not commit real `.env` files.
+
+## Demo Users
+
+Demo users are seeded idempotently when `AUTH_DEMO_USERS_ENABLED=true`.
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Branch user | `branch@aegis.local` | `AegisBranch123!` |
+| Fraud analyst | `fraud@aegis.local` | `AegisFraud123!` |
+| Manager | `manager@aegis.local` | `AegisManager123!` |
+| Admin | `admin@aegis.local` | `AegisAdmin123!` |
+
+These accounts are for local development and demos only.
+
+Role summary:
+
+- `branch_user`: create intake and view cases for demo continuity
+- `fraud_analyst`: view cases, update cases, complete playbook actions, close cases, view reporting
+- `manager`: view cases and reporting, read-only for case mutation
+- `admin`: full access, including seed/reset/delete demo utilities
 
 ## Manual Local Development
 
@@ -108,6 +133,8 @@ INTERNAL_API_BASE_URL=http://backend:8000
 
 The frontend API helper uses the browser-facing URL in the browser. Next.js rewrites and server-side/container calls use `INTERNAL_API_BASE_URL` when it is set.
 
+Auth in Docker uses the same browser-facing backend URL, `http://localhost:8000`, so the HttpOnly session cookie is set for the host browser. Keep `SESSION_COOKIE_SECURE=false` for local HTTP Compose runs.
+
 ## Reset Docker Data
 
 Postgres data is stored in the `postgres_data` Docker volume. To remove local Docker database state:
@@ -169,6 +196,7 @@ Backend unavailable in the UI:
 - Confirm the backend is running on the browser-facing URL in `NEXT_PUBLIC_API_BASE_URL`.
 - For manual local dev, verify `http://localhost:8000/health`.
 - For Docker, verify `docker compose ps` and `http://localhost:8000/health`.
+- If protected pages redirect to `/login`, sign in with one of the seeded demo users.
 
 Postgres connection errors in Docker:
 

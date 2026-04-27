@@ -3,11 +3,13 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.health import router as health_router
 from app.api.routes.scam_cases import router as scam_cases_router
-from app.core.database import Base, engine, ensure_case_closure_columns
+from app.core.auth import seed_demo_users
+from app.core.database import Base, SessionLocal, engine, ensure_case_closure_columns
 from app.core.security import security_headers_for_path
-from app.models import action_log, scam_case, system_audit_log  # noqa: F401
+from app.models import action_log, scam_case, system_audit_log, user  # noqa: F401
 
 app = FastAPI(
     title="Aegis Member Protection API",
@@ -42,6 +44,12 @@ async def add_security_headers(request, call_next):
 
 Base.metadata.create_all(bind=engine)
 ensure_case_closure_columns()
+seed_db = SessionLocal()
+try:
+    seed_demo_users(seed_db)
+finally:
+    seed_db.close()
 
 app.include_router(health_router)
+app.include_router(auth_router)
 app.include_router(scam_cases_router)

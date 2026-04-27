@@ -9,6 +9,7 @@ export type AegisRole = (typeof aegisRoles)[number];
 
 export const aegisPermissions = [
   "create_intake",
+  "view_cases",
   "update_case",
   "close_case",
   "view_reporting",
@@ -18,9 +19,9 @@ export const aegisPermissions = [
 export type AegisPermission = (typeof aegisPermissions)[number];
 
 export const rolePermissions: Record<AegisRole, AegisPermission[]> = {
-  branch_user: ["create_intake"],
-  fraud_analyst: ["update_case", "close_case"],
-  manager: ["view_reporting"],
+  branch_user: ["create_intake", "view_cases"],
+  fraud_analyst: ["create_intake", "view_cases", "update_case", "close_case", "view_reporting"],
+  manager: ["view_cases", "view_reporting"],
   admin: [...aegisPermissions],
 };
 

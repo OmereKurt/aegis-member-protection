@@ -20,6 +20,23 @@ from app.main import app  # noqa: E402
 
 client = TestClient(app)
 
+DEMO_PASSWORDS = {
+    "branch@aegis.local": "AegisBranch123!",
+    "fraud@aegis.local": "AegisFraud123!",
+    "manager@aegis.local": "AegisManager123!",
+    "admin@aegis.local": "AegisAdmin123!",
+}
+
+
+def login_as(email: str):
+    client.cookies.clear()
+    response = client.post(
+        "/api/auth/login",
+        json={"email": email, "password": DEMO_PASSWORDS[email]},
+    )
+    assert response.status_code == 200
+    return response.json()["user"]
+
 
 @atexit.register
 def remove_test_database():
@@ -28,6 +45,7 @@ def remove_test_database():
 
 
 def reset_cases():
+    login_as("admin@aegis.local")
     response = client.post("/api/scam-cases/reset-demo-data")
     assert response.status_code == 200
 
@@ -41,6 +59,7 @@ def test_health_endpoint():
 
 def test_list_cases_starts_empty_after_reset():
     reset_cases()
+    login_as("manager@aegis.local")
 
     response = client.get("/api/scam-cases/")
 
@@ -50,6 +69,7 @@ def test_list_cases_starts_empty_after_reset():
 
 def test_create_case_and_list_cases():
     reset_cases()
+    login_as("branch@aegis.local")
 
     payload = {
         "customer_identifier": "TEST-1001",
@@ -86,6 +106,7 @@ def test_create_case_and_list_cases():
     assert created["case_intelligence"]["likely_pattern"]
     assert created["action_logs"]
 
+    login_as("manager@aegis.local")
     list_response = client.get("/api/scam-cases/")
     assert list_response.status_code == 200
     records = list_response.json()
@@ -95,6 +116,7 @@ def test_create_case_and_list_cases():
 
 def test_seed_demo_data_endpoint():
     reset_cases()
+    login_as("admin@aegis.local")
 
     seed_response = client.post("/api/scam-cases/seed-demo-data")
     assert seed_response.status_code == 200

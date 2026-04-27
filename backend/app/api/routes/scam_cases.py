@@ -6,8 +6,10 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from app.core.auth import require_permission
 from app.core.database import SessionLocal
 from app.core.security import rate_limit
+from app.core.security import Permission
 from app.models.action_log import ActionLog
 from app.models.scam_case import ScamCase
 from app.models.system_audit_log import SystemAuditLog
@@ -26,6 +28,12 @@ router = APIRouter(prefix="/api/scam-cases", tags=["cases"])
 
 WRITE_RATE_LIMIT = Depends(rate_limit("case_write", limit=120, window_seconds=60))
 ADMIN_RATE_LIMIT = Depends(rate_limit("case_admin", limit=20, window_seconds=60))
+VIEW_CASES = Depends(require_permission(Permission.view_cases))
+CREATE_INTAKE = Depends(require_permission(Permission.create_intake))
+UPDATE_CASE = Depends(require_permission(Permission.update_case))
+CLOSE_CASE = Depends(require_permission(Permission.close_case))
+VIEW_REPORTING = Depends(require_permission(Permission.view_reporting))
+MANAGE_DEMO_DATA = Depends(require_permission(Permission.manage_demo_data))
 
 OUTCOME_LABELS = {
     "member_protected": "Member protected",
@@ -502,7 +510,7 @@ def serialize_case(db: Session, case: ScamCase) -> dict:
     }
 
 
-@router.get("/", response_model=list[ScamCaseResponse], summary="List Cases")
+@router.get("/", response_model=list[ScamCaseResponse], summary="List Cases", dependencies=[VIEW_CASES])
 def list_scam_cases():
     db: Session = SessionLocal()
 
@@ -525,7 +533,7 @@ def list_scam_cases():
         db.close()
 
 
-@router.get("/summary", summary="Get Case Summary")
+@router.get("/summary", summary="Get Case Summary", dependencies=[VIEW_REPORTING])
 def get_scam_case_summary():
     db: Session = SessionLocal()
 
@@ -567,8 +575,8 @@ def get_scam_case_summary():
         db.close()
 
 
-@router.post("/", response_model=ScamCaseResponse, summary="Create Case", dependencies=[WRITE_RATE_LIMIT])
-@router.post("/intake", response_model=ScamCaseResponse, summary="Create Intake Case", dependencies=[WRITE_RATE_LIMIT])
+@router.post("/", response_model=ScamCaseResponse, summary="Create Case", dependencies=[WRITE_RATE_LIMIT, CREATE_INTAKE])
+@router.post("/intake", response_model=ScamCaseResponse, summary="Create Intake Case", dependencies=[WRITE_RATE_LIMIT, CREATE_INTAKE])
 def create_scam_case(payload: ScamCaseIntakeRequest):
     db: Session = SessionLocal()
 
@@ -755,7 +763,7 @@ def build_seed_case(db: Session, seed: dict) -> ScamCase:
     return scam_case
 
 
-@router.post("/reset-demo-data", summary="Reset Demo Data", dependencies=[ADMIN_RATE_LIMIT])
+@router.post("/reset-demo-data", summary="Reset Demo Data", dependencies=[ADMIN_RATE_LIMIT, MANAGE_DEMO_DATA])
 def reset_demo_data(request: Request):
     db: Session = SessionLocal()
 
@@ -777,7 +785,7 @@ def reset_demo_data(request: Request):
         db.close()
 
 
-@router.post("/seed-demo-data", summary="Seed Demo Data", dependencies=[ADMIN_RATE_LIMIT])
+@router.post("/seed-demo-data", summary="Seed Demo Data", dependencies=[ADMIN_RATE_LIMIT, MANAGE_DEMO_DATA])
 def seed_demo_data(request: Request):
     db: Session = SessionLocal()
 
@@ -805,7 +813,7 @@ def seed_demo_data(request: Request):
         db.close()
 
 
-@router.delete("/{case_id}", summary="Delete Case", dependencies=[ADMIN_RATE_LIMIT])
+@router.delete("/{case_id}", summary="Delete Case", dependencies=[ADMIN_RATE_LIMIT, MANAGE_DEMO_DATA])
 def delete_scam_case(case_id: int, request: Request):
     db: Session = SessionLocal()
 
@@ -834,7 +842,7 @@ def delete_scam_case(case_id: int, request: Request):
         db.close()
 
 
-@router.post("/{case_id}/actions", response_model=ScamCaseResponse, summary="Record Case Action", dependencies=[WRITE_RATE_LIMIT])
+@router.post("/{case_id}/actions", response_model=ScamCaseResponse, summary="Record Case Action", dependencies=[WRITE_RATE_LIMIT, UPDATE_CASE])
 def record_case_action(case_id: int, payload: CaseActionUpdate):
     db: Session = SessionLocal()
 
@@ -894,7 +902,7 @@ def record_case_action(case_id: int, payload: CaseActionUpdate):
         db.close()
 
 
-@router.get("/{case_id}", response_model=ScamCaseResponse, summary="Get Case")
+@router.get("/{case_id}", response_model=ScamCaseResponse, summary="Get Case", dependencies=[VIEW_CASES])
 def get_scam_case(case_id: int):
     db: Session = SessionLocal()
 
@@ -909,7 +917,7 @@ def get_scam_case(case_id: int):
         db.close()
 
 
-@router.put("/{case_id}/status", response_model=ScamCaseResponse, summary="Update Case Status", dependencies=[WRITE_RATE_LIMIT])
+@router.put("/{case_id}/status", response_model=ScamCaseResponse, summary="Update Case Status", dependencies=[WRITE_RATE_LIMIT, UPDATE_CASE])
 def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
     db: Session = SessionLocal()
 
@@ -938,7 +946,7 @@ def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
         db.close()
 
 
-@router.put("/{case_id}/notes", response_model=ScamCaseResponse, summary="Update Case Notes", dependencies=[WRITE_RATE_LIMIT])
+@router.put("/{case_id}/notes", response_model=ScamCaseResponse, summary="Update Case Notes", dependencies=[WRITE_RATE_LIMIT, UPDATE_CASE])
 def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
     db: Session = SessionLocal()
 
@@ -967,7 +975,7 @@ def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
         db.close()
 
 
-@router.put("/{case_id}/assignment", response_model=ScamCaseResponse, summary="Update Case Assignment", dependencies=[WRITE_RATE_LIMIT])
+@router.put("/{case_id}/assignment", response_model=ScamCaseResponse, summary="Update Case Assignment", dependencies=[WRITE_RATE_LIMIT, UPDATE_CASE])
 def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
     db: Session = SessionLocal()
 
@@ -1001,7 +1009,7 @@ def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
         db.close()
 
 
-@router.put("/{case_id}/close", response_model=ScamCaseResponse, summary="Close Case", dependencies=[WRITE_RATE_LIMIT])
+@router.put("/{case_id}/close", response_model=ScamCaseResponse, summary="Close Case", dependencies=[WRITE_RATE_LIMIT, CLOSE_CASE])
 def close_scam_case(case_id: int, payload: CaseCloseUpdate):
     db: Session = SessionLocal()
 

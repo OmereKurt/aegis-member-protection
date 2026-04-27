@@ -87,7 +87,7 @@ export default function HomePage() {
         setLoadError("");
       } catch {
         setCases([]);
-        setLoadError("Live backend snapshot unavailable.");
+        setLoadError("Sign in to view live case posture.");
       } finally {
         setIsLoading(false);
       }
@@ -159,8 +159,8 @@ export default function HomePage() {
 
           {loadError ? (
             <div className="readonly-box">
-              <strong>Backend unavailable</strong>
-              <p>Live case metrics will appear when the backend connection is restored.</p>
+              <strong>Live snapshot requires sign-in</strong>
+              <p>{loadError}</p>
             </div>
           ) : (
             <div className="home-snapshot-grid">

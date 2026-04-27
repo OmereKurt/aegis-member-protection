@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../AuthProvider";
 import {
   deleteCase,
   listCases,
@@ -60,6 +61,7 @@ function percent(count: number, total: number) {
 }
 
 export default function OperationsPage() {
+  const auth = useAuth();
   const [cases, setCases] = useState<CaseItem[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -142,6 +144,9 @@ export default function OperationsPage() {
     .filter((signal) => signal.present)
     .slice(0, 2);
   const backendUnavailable = Boolean(loadError);
+  const canCreateIntake = auth.can("create_intake");
+  const canViewReporting = auth.can("view_reporting");
+  const canManageDemoData = auth.can("manage_demo_data");
 
   const openCases = filteredQueue.filter((item) => item.status !== "Closed").length;
   const escalatedToday = filteredQueue.filter((item) => item.status === "Escalated").length;
@@ -283,12 +288,16 @@ export default function OperationsPage() {
               </div>
 
               <div className="button-row">
-                <Link href="/cases/new" className="button">
-                  Start Intake
-                </Link>
-                <Link href="/reporting" className="button button-secondary">
-                  View Reporting
-                </Link>
+                {canCreateIntake ? (
+                  <Link href="/cases/new" className="button">
+                    Start Intake
+                  </Link>
+                ) : null}
+                {canViewReporting ? (
+                  <Link href="/reporting" className="button button-secondary">
+                    View Reporting
+                  </Link>
+                ) : null}
               </div>
             </div>
 
@@ -410,12 +419,16 @@ export default function OperationsPage() {
                               Start a new intake to create the first case and begin the workflow.
                             </div>
                             <div className="button-row" style={{ marginTop: 14 }}>
-                              <Link href="/cases/new" className="button">
-                                Start Intake
-                              </Link>
-                              <Link href="/reporting" className="button button-secondary">
-                                View Reporting
-                              </Link>
+                              {canCreateIntake ? (
+                                <Link href="/cases/new" className="button">
+                                  Start Intake
+                                </Link>
+                              ) : null}
+                              {canViewReporting ? (
+                                <Link href="/reporting" className="button button-secondary">
+                                  View Reporting
+                                </Link>
+                              ) : null}
                             </div>
                           </div>
                         ) : (
@@ -556,12 +569,16 @@ export default function OperationsPage() {
                 </div>
 
                 <div className="button-row">
-                  <Link href="/cases/new" className="button">
-                    Start Intake
-                  </Link>
-                  <Link href="/reporting" className="button button-secondary">
-                    View Reporting
-                  </Link>
+                  {canCreateIntake ? (
+                    <Link href="/cases/new" className="button">
+                      Start Intake
+                    </Link>
+                  ) : null}
+                  {canViewReporting ? (
+                    <Link href="/reporting" className="button button-secondary">
+                      View Reporting
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -608,41 +625,43 @@ export default function OperationsPage() {
           </div>
         </div>
 
-        <div className="workspace-panel admin-utility-panel utility-panel">
-          <h3 className="workspace-section-title">Demo / admin utilities</h3>
-          <p className="workspace-subtle">Evaluation controls for clearing or loading curated demo cases.</p>
-          <div className="demo-cleanup-inline">
-            <button
-              type="button"
-              className="button button-secondary button-compact"
-              onClick={handleDeleteSelectedCase}
-              disabled={actionInFlight || !selectedCase?.backendId}
-            >
-              Delete selected case
-            </button>
-            <button
-              type="button"
-              className="button button-secondary button-compact"
-              onClick={handleResetDemoData}
-              disabled={actionInFlight}
-            >
-              Reset Demo Data
-            </button>
-            <button
-              type="button"
-              className="button button-secondary button-compact"
-              onClick={handleSeedDemoData}
-              disabled={actionInFlight}
-            >
-              Seed Demo Data
-            </button>
+        {canManageDemoData ? (
+          <div className="workspace-panel admin-utility-panel utility-panel">
+            <h3 className="workspace-section-title">Demo / admin utilities</h3>
+            <p className="workspace-subtle">Evaluation controls for clearing or loading curated demo cases.</p>
+            <div className="demo-cleanup-inline">
+              <button
+                type="button"
+                className="button button-secondary button-compact"
+                onClick={handleDeleteSelectedCase}
+                disabled={actionInFlight || !selectedCase?.backendId}
+              >
+                Delete selected case
+              </button>
+              <button
+                type="button"
+                className="button button-secondary button-compact"
+                onClick={handleResetDemoData}
+                disabled={actionInFlight}
+              >
+                Reset Demo Data
+              </button>
+              <button
+                type="button"
+                className="button button-secondary button-compact"
+                onClick={handleSeedDemoData}
+                disabled={actionInFlight}
+              >
+                Seed Demo Data
+              </button>
+            </div>
+            <div className="nav-row ops-utility-links">
+              <Link href="/cases/new">Start Intake</Link>
+              <Link href="/reporting">Reporting</Link>
+              <Link href="/pilot">Pilot</Link>
+            </div>
           </div>
-          <div className="nav-row ops-utility-links">
-            <Link href="/cases/new">Start Intake</Link>
-            <Link href="/reporting">Reporting</Link>
-            <Link href="/pilot">Pilot</Link>
-          </div>
-        </div>
+        ) : null}
       </section>
     </main>
   );

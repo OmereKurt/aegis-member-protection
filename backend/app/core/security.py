@@ -41,6 +41,7 @@ class AegisRole(str, Enum):
 
 class Permission(str, Enum):
     create_intake = "create_intake"
+    view_cases = "view_cases"
     update_case = "update_case"
     close_case = "close_case"
     view_reporting = "view_reporting"
@@ -48,9 +49,15 @@ class Permission(str, Enum):
 
 
 ROLE_PERMISSIONS: dict[AegisRole, set[Permission]] = {
-    AegisRole.branch_user: {Permission.create_intake},
-    AegisRole.fraud_analyst: {Permission.update_case, Permission.close_case},
-    AegisRole.manager: {Permission.view_reporting},
+    AegisRole.branch_user: {Permission.create_intake, Permission.view_cases},
+    AegisRole.fraud_analyst: {
+        Permission.create_intake,
+        Permission.view_cases,
+        Permission.update_case,
+        Permission.close_case,
+        Permission.view_reporting,
+    },
+    AegisRole.manager: {Permission.view_cases, Permission.view_reporting},
     AegisRole.admin: set(Permission),
 }
 

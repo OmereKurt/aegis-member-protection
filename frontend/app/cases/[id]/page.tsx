@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../../AuthProvider";
 import {
   closeCase,
   getCase,
@@ -312,6 +313,7 @@ function errorMessage(error: unknown) {
 }
 
 export default function CaseDetailPage() {
+  const auth = useAuth();
   const params = useParams();
   const caseId = String(params.id);
 
@@ -367,6 +369,8 @@ export default function CaseDetailPage() {
   const primaryActions = structuredActions.filter((action) => action.priority === "primary");
   const secondaryActions = structuredActions.filter((action) => action.priority === "secondary");
   const playbookSteps = useMemo(() => (caseData ? buildPlaybookSteps(caseData) : []), [caseData]);
+  const canUpdateCase = auth.can("update_case");
+  const canCloseCase = auth.can("close_case");
   const recommendedPlaybookStep = useMemo(() => {
     if (!caseData || caseData.status === "Closed") return undefined;
     return playbookSteps.find((step) => {
@@ -681,7 +685,7 @@ export default function CaseDetailPage() {
                                 type="button"
                                 className="button button-secondary button-compact"
                                 onClick={() => handlePlaybookStep(step, "completed")}
-                                disabled={actionInFlight || isLocked}
+                                disabled={actionInFlight || isLocked || !canUpdateCase}
                               >
                                 Complete
                               </button>
@@ -689,7 +693,7 @@ export default function CaseDetailPage() {
                                 type="button"
                                 className="button button-secondary button-compact"
                                 onClick={() => handlePlaybookStep(step, "skipped")}
-                                disabled={actionInFlight || isLocked}
+                                disabled={actionInFlight || isLocked || !canUpdateCase}
                               >
                                 Skip
                               </button>
@@ -704,6 +708,11 @@ export default function CaseDetailPage() {
 
               <section className="workspace-panel cockpit-panel cockpit-actions" id="closure-outcome">
                 <h3 className="workspace-section-title">Primary actions</h3>
+                {!canUpdateCase ? (
+                  <div className="readonly-box" style={{ marginBottom: 12 }}>
+                    This role has read-only case access.
+                  </div>
+                ) : null}
                 <div className="primary-action-grid">
                   {primaryActions.map((action) => (
                     <button
@@ -711,7 +720,7 @@ export default function CaseDetailPage() {
                       type="button"
                       className="workstation-action-button"
                       onClick={() => handleStructuredAction(action.payload)}
-                      disabled={actionInFlight}
+                      disabled={actionInFlight || !canUpdateCase}
                     >
                       <span>{action.label}</span>
                       <small>{action.detail}</small>
@@ -735,7 +744,7 @@ export default function CaseDetailPage() {
                         type="button"
                         className="workstation-action-button workstation-action-button-secondary"
                         onClick={() => handleStructuredAction(action.payload)}
-                        disabled={actionInFlight}
+                        disabled={actionInFlight || !canUpdateCase}
                       >
                         <span>{action.label}</span>
                         <small>{action.detail}</small>
@@ -765,10 +774,10 @@ export default function CaseDetailPage() {
                 </div>
 
                 <div className="button-row" style={{ marginTop: 14 }}>
-                  <button type="button" className="button" onClick={handleStatusSave} disabled={actionInFlight}>
+                  <button type="button" className="button" onClick={handleStatusSave} disabled={actionInFlight || !canUpdateCase}>
                     Save Status
                   </button>
-                  <button type="button" className="button button-secondary" onClick={handleAssignmentSave} disabled={actionInFlight}>
+                  <button type="button" className="button button-secondary" onClick={handleAssignmentSave} disabled={actionInFlight || !canUpdateCase}>
                     Save Assignment
                   </button>
                 </div>
@@ -781,7 +790,7 @@ export default function CaseDetailPage() {
                   <textarea rows={5} value={notesValue} onChange={(event) => setNotesValue(event.target.value)} />
                 </div>
                 <div className="button-row" style={{ marginTop: 14 }}>
-                  <button type="button" className="button button-secondary" onClick={handleNotesSave} disabled={actionInFlight}>
+                  <button type="button" className="button button-secondary" onClick={handleNotesSave} disabled={actionInFlight || !canUpdateCase}>
                     Save Notes
                   </button>
                 </div>
@@ -897,7 +906,7 @@ export default function CaseDetailPage() {
                     type="button"
                     className="button"
                     onClick={handleSubmitClosure}
-                    disabled={actionInFlight || !closureForm.closure_summary.trim()}
+                    disabled={actionInFlight || !canCloseCase || !closureForm.closure_summary.trim()}
                   >
                     Submit Closure
                   </button>

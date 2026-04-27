@@ -211,6 +211,25 @@ Environment examples are provided in:
 
 Do not commit real local `.env` files.
 
+Auth/session environment variables:
+
+```text
+JWT_SECRET=replace-with-a-long-random-local-secret
+SESSION_COOKIE_NAME=aegis_session
+ACCESS_TOKEN_EXPIRE_MINUTES=480
+AUTH_DEMO_USERS_ENABLED=true
+SESSION_COOKIE_SECURE=false
+```
+
+Local demo users:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Branch user | `branch@aegis.local` | `AegisBranch123!` |
+| Fraud analyst | `fraud@aegis.local` | `AegisFraud123!` |
+| Manager | `manager@aegis.local` | `AegisManager123!` |
+| Admin | `admin@aegis.local` | `AegisAdmin123!` |
+
 For Docker Compose, the frontend uses separate backend URLs:
 
 ```text

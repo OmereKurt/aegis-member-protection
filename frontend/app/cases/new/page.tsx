@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../AuthProvider";
 import { createCase, updateCaseNotes } from "../../lib/cases";
 
 type IntakeState = {
@@ -122,6 +123,7 @@ function ToggleCard({
 
 export default function NewIntakePage() {
   const router = useRouter();
+  const auth = useAuth();
 
   const [form, setForm] = useState<IntakeState>(initialState);
   const [activeStep, setActiveStep] = useState<string>("event-details");
@@ -385,7 +387,7 @@ export default function NewIntakePage() {
         remote_access_or_tech_support_story: /remote|tech support|computer|microsoft|apple/i.test(narrative),
       });
 
-      if (form.operatorNotes.trim()) {
+      if (form.operatorNotes.trim() && auth.can("update_case")) {
         await updateCaseNotes(createdCase.id, form.operatorNotes.trim());
       }
 
