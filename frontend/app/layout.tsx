@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
+import AppNav from "./AppNav";
 
 export const metadata: Metadata = {
   title: "Aegis Member Protection",
@@ -33,13 +34,12 @@ export default function RootLayout({
                 </div>
               </Link>
 
-              <nav className="topnav">
-                <Link href="/">Home</Link>
-                <Link href="/ops">Workspace</Link>
-                <Link href="/reporting">Reporting</Link>
-                <Link href="/pilot">Pilot Program</Link>
-                <Link href="/cases/new">New Intake</Link>
-              </nav>
+              <div className="topbar-status" aria-label="Environment">
+                <span className="status-dot" aria-hidden="true" />
+                Live operations
+              </div>
+
+              <AppNav />
             </div>
           </header>
 
