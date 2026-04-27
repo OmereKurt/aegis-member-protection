@@ -1,13 +1,16 @@
 import json
 from datetime import datetime, timezone
+from typing import Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import SessionLocal
+from app.core.security import rate_limit
 from app.models.action_log import ActionLog
 from app.models.scam_case import ScamCase
+from app.models.system_audit_log import SystemAuditLog
 from app.schemas.scam_case import (
     CaseActionUpdate,
     CaseAssignmentUpdate,
@@ -20,6 +23,9 @@ from app.schemas.scam_case import (
 from app.services.scam_case_logic import build_case_artifacts, build_case_intelligence
 
 router = APIRouter(prefix="/api/scam-cases", tags=["cases"])
+
+WRITE_RATE_LIMIT = Depends(rate_limit("case_write", limit=120, window_seconds=60))
+ADMIN_RATE_LIMIT = Depends(rate_limit("case_admin", limit=20, window_seconds=60))
 
 OUTCOME_LABELS = {
     "member_protected": "Member protected",
@@ -380,6 +386,33 @@ def write_action_log(db: Session, scam_case_id: int, action_type: str, details: 
     return log
 
 
+def actor_role_from_request(request: Request) -> Optional[str]:
+    role = request.headers.get("x-aegis-role")
+    return role.strip()[:80] if role else None
+
+
+def write_system_audit_log(
+    db: Session,
+    action_type: str,
+    details: str,
+    *,
+    actor_role: Optional[str] = None,
+    resource_type: Optional[str] = None,
+    resource_id: Optional[str] = None,
+):
+    log = SystemAuditLog(
+        action_type=action_type,
+        details=details,
+        actor_role=actor_role,
+        resource_type=resource_type,
+        resource_id=resource_id,
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(log)
+    return log
+
+
 def serialize_action_logs(db: Session, scam_case_id: int) -> list[dict]:
     logs = (
         db.query(ActionLog)
@@ -534,8 +567,8 @@ def get_scam_case_summary():
         db.close()
 
 
-@router.post("/", response_model=ScamCaseResponse, summary="Create Case")
-@router.post("/intake", response_model=ScamCaseResponse, summary="Create Intake Case")
+@router.post("/", response_model=ScamCaseResponse, summary="Create Case", dependencies=[WRITE_RATE_LIMIT])
+@router.post("/intake", response_model=ScamCaseResponse, summary="Create Intake Case", dependencies=[WRITE_RATE_LIMIT])
 def create_scam_case(payload: ScamCaseIntakeRequest):
     db: Session = SessionLocal()
 
@@ -722,8 +755,8 @@ def build_seed_case(db: Session, seed: dict) -> ScamCase:
     return scam_case
 
 
-@router.post("/reset-demo-data", summary="Reset Demo Data")
-def reset_demo_data():
+@router.post("/reset-demo-data", summary="Reset Demo Data", dependencies=[ADMIN_RATE_LIMIT])
+def reset_demo_data(request: Request):
     db: Session = SessionLocal()
 
     try:
@@ -731,13 +764,21 @@ def reset_demo_data():
         deleted_cases = db.query(ScamCase).delete()
         db.commit()
 
+        write_system_audit_log(
+            db,
+            "demo_data_reset",
+            f"Reset demo data. Deleted {deleted_cases} cases and {deleted_logs} case action logs.",
+            actor_role=actor_role_from_request(request),
+            resource_type="demo_data",
+        )
+
         return {"deleted_cases": deleted_cases, "deleted_action_logs": deleted_logs}
     finally:
         db.close()
 
 
-@router.post("/seed-demo-data", summary="Seed Demo Data")
-def seed_demo_data():
+@router.post("/seed-demo-data", summary="Seed Demo Data", dependencies=[ADMIN_RATE_LIMIT])
+def seed_demo_data(request: Request):
     db: Session = SessionLocal()
 
     try:
@@ -746,6 +787,14 @@ def seed_demo_data():
         db.commit()
 
         seeded = [build_seed_case(db, seed) for seed in DEMO_CASES]
+
+        write_system_audit_log(
+            db,
+            "demo_data_seeded",
+            f"Seeded {len(seeded)} curated demo cases after deleting {deleted_cases} existing cases.",
+            actor_role=actor_role_from_request(request),
+            resource_type="demo_data",
+        )
 
         return {
             "seeded_cases": len(seeded),
@@ -756,8 +805,8 @@ def seed_demo_data():
         db.close()
 
 
-@router.delete("/{case_id}", summary="Delete Case")
-def delete_scam_case(case_id: int):
+@router.delete("/{case_id}", summary="Delete Case", dependencies=[ADMIN_RATE_LIMIT])
+def delete_scam_case(case_id: int, request: Request):
     db: Session = SessionLocal()
 
     try:
@@ -766,16 +815,26 @@ def delete_scam_case(case_id: int):
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
 
+        case_reference = case.case_id
         db.query(ActionLog).filter(ActionLog.scam_case_id == case.id).delete()
         db.delete(case)
         db.commit()
+
+        write_system_audit_log(
+            db,
+            "case_deleted",
+            f"Deleted case {case_reference}.",
+            actor_role=actor_role_from_request(request),
+            resource_type="case",
+            resource_id=str(case_id),
+        )
 
         return {"id": case_id, "deleted": True}
     finally:
         db.close()
 
 
-@router.post("/{case_id}/actions", response_model=ScamCaseResponse, summary="Record Case Action")
+@router.post("/{case_id}/actions", response_model=ScamCaseResponse, summary="Record Case Action", dependencies=[WRITE_RATE_LIMIT])
 def record_case_action(case_id: int, payload: CaseActionUpdate):
     db: Session = SessionLocal()
 
@@ -791,14 +850,17 @@ def record_case_action(case_id: int, payload: CaseActionUpdate):
             changes.append(f"status {case.status} -> {payload.status}")
             case.status = payload.status
 
-        if payload.assigned_owner is not None or payload.assigned_team is not None:
+        if (
+            payload.assigned_owner is not None
+            or payload.assigned_team is not None
+        ) and (payload.assigned_owner != case.assigned_owner or payload.assigned_team != case.assigned_team):
             case.assigned_owner = payload.assigned_owner
             case.assigned_team = payload.assigned_team
             owner_text = payload.assigned_owner or "Unassigned owner"
             team_text = payload.assigned_team or "Unassigned team"
             changes.append(f"assignment owner: {owner_text}; team: {team_text}")
 
-        if payload.notes is not None:
+        if payload.notes is not None and payload.notes != case.notes:
             case.notes = payload.notes
             changes.append("operator notes updated")
 
@@ -806,11 +868,11 @@ def record_case_action(case_id: int, payload: CaseActionUpdate):
             case.money_already_left = payload.money_already_left
             changes.append(f"funds already left set to {payload.money_already_left}")
 
-        if payload.outcome_type is not None:
+        if payload.outcome_type is not None and payload.outcome_type != case.outcome_type:
             case.outcome_type = payload.outcome_type
             changes.append(f"outcome set to {payload.outcome_type}")
 
-        if payload.closure_notes is not None:
+        if payload.closure_notes is not None and payload.closure_notes != case.closure_notes:
             case.closure_notes = payload.closure_notes
             changes.append("closure notes updated")
 
@@ -847,7 +909,7 @@ def get_scam_case(case_id: int):
         db.close()
 
 
-@router.put("/{case_id}/status", response_model=ScamCaseResponse, summary="Update Case Status")
+@router.put("/{case_id}/status", response_model=ScamCaseResponse, summary="Update Case Status", dependencies=[WRITE_RATE_LIMIT])
 def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
     db: Session = SessionLocal()
 
@@ -876,7 +938,7 @@ def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
         db.close()
 
 
-@router.put("/{case_id}/notes", response_model=ScamCaseResponse, summary="Update Case Notes")
+@router.put("/{case_id}/notes", response_model=ScamCaseResponse, summary="Update Case Notes", dependencies=[WRITE_RATE_LIMIT])
 def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
     db: Session = SessionLocal()
 
@@ -885,6 +947,9 @@ def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
 
         if not case:
             raise HTTPException(status_code=404, detail="Case not found")
+
+        if case.notes == payload.notes:
+            return serialize_case(db, case)
 
         case.notes = payload.notes
         db.commit()
@@ -902,7 +967,7 @@ def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
         db.close()
 
 
-@router.put("/{case_id}/assignment", response_model=ScamCaseResponse, summary="Update Case Assignment")
+@router.put("/{case_id}/assignment", response_model=ScamCaseResponse, summary="Update Case Assignment", dependencies=[WRITE_RATE_LIMIT])
 def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
     db: Session = SessionLocal()
 
@@ -936,7 +1001,7 @@ def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
         db.close()
 
 
-@router.put("/{case_id}/close", response_model=ScamCaseResponse, summary="Close Case")
+@router.put("/{case_id}/close", response_model=ScamCaseResponse, summary="Close Case", dependencies=[WRITE_RATE_LIMIT])
 def close_scam_case(case_id: int, payload: CaseCloseUpdate):
     db: Session = SessionLocal()
 

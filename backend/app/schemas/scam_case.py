@@ -1,6 +1,6 @@
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 AgeBand = Literal["under_60", "60_69", "70_79", "80_plus", "unknown"]
@@ -26,6 +26,8 @@ OutcomeType = Literal[
 ]
 
 MAX_TRACKED_AMOUNT = 1_000_000
+MAX_NARRATIVE_LENGTH = 8_000
+MAX_NOTES_LENGTH = 5_000
 
 
 def _first_present(data: dict, *keys: str):
@@ -195,27 +197,27 @@ class ScamCaseIntakeRequest(BaseModel):
 
         return normalized
 
-    customer_identifier: str
-    full_name: Optional[str] = None
+    customer_identifier: str = Field(min_length=1, max_length=80)
+    full_name: Optional[str] = Field(default=None, max_length=120)
     age_band: AgeBand
     vulnerable_adult_flag: bool = False
 
-    source_unit: str = "Branch"
+    source_unit: str = Field(default="Branch", min_length=1, max_length=120)
 
     trusted_contact_exists: bool = False
-    trusted_contact_name: Optional[str] = None
-    trusted_contact_phone: Optional[str] = None
+    trusted_contact_name: Optional[str] = Field(default=None, max_length=120)
+    trusted_contact_phone: Optional[str] = Field(default=None, max_length=40)
 
     intake_channel: IntakeChannel
     transaction_type: TransactionType
-    amount_at_risk: float = 0
+    amount_at_risk: float = Field(default=0, ge=0, le=MAX_TRACKED_AMOUNT)
 
     money_already_left: bool = False
     customer_currently_on_call_with_scammer: bool = False
     new_payee_or_destination: bool = False
     customer_told_to_keep_secret: bool = False
 
-    narrative: str
+    narrative: str = Field(min_length=1, max_length=MAX_NARRATIVE_LENGTH)
 
     phone_based_imposter_story: bool = False
     government_or_bank_brand_impersonation: bool = False
@@ -228,29 +230,44 @@ class ScamCaseIntakeRequest(BaseModel):
     crypto_or_gift_card_request: bool = False
     romance_or_emotional_dependency_pattern: bool = False
 
+    @field_validator(
+        "customer_identifier",
+        "full_name",
+        "source_unit",
+        "trusted_contact_name",
+        "trusted_contact_phone",
+        "narrative",
+        mode="before",
+    )
+    @classmethod
+    def strip_text_fields(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
 
 class CaseStatusUpdate(BaseModel):
     status: StatusType
 
 
 class CaseNotesUpdate(BaseModel):
-    notes: str = ""
+    notes: str = Field(default="", max_length=MAX_NOTES_LENGTH)
 
 
 class CaseAssignmentUpdate(BaseModel):
-    assigned_owner: Optional[str] = None
-    assigned_team: Optional[str] = None
+    assigned_owner: Optional[str] = Field(default=None, max_length=120)
+    assigned_team: Optional[str] = Field(default=None, max_length=120)
 
 
 class CaseCloseUpdate(BaseModel):
     outcome_type: OutcomeType
-    closure_summary: str
+    closure_summary: str = Field(min_length=1, max_length=MAX_NOTES_LENGTH)
     follow_up_required: bool
     estimated_amount_protected: Optional[float] = None
     estimated_amount_lost: Optional[float] = None
     trusted_contact_engaged: bool = False
     fraud_ops_involved: bool = False
-    closure_notes: Optional[str] = None
+    closure_notes: Optional[str] = Field(default=None, max_length=MAX_NOTES_LENGTH)
 
     @field_validator("estimated_amount_protected", "estimated_amount_lost", mode="before")
     @classmethod
@@ -266,18 +283,32 @@ class CaseCloseUpdate(BaseModel):
 
         return round(amount, 2)
 
+    @field_validator("closure_summary", "closure_notes", mode="before")
+    @classmethod
+    def strip_closure_text(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
 
 class CaseActionUpdate(BaseModel):
-    action_type: str = "structured_action"
-    label: str
-    details: Optional[str] = None
+    action_type: str = Field(default="structured_action", min_length=1, max_length=80)
+    label: str = Field(min_length=1, max_length=120)
+    details: Optional[str] = Field(default=None, max_length=MAX_NOTES_LENGTH)
     status: Optional[StatusType] = None
-    assigned_owner: Optional[str] = None
-    assigned_team: Optional[str] = None
-    notes: Optional[str] = None
+    assigned_owner: Optional[str] = Field(default=None, max_length=120)
+    assigned_team: Optional[str] = Field(default=None, max_length=120)
+    notes: Optional[str] = Field(default=None, max_length=MAX_NOTES_LENGTH)
     money_already_left: Optional[bool] = None
     outcome_type: Optional[OutcomeType] = None
-    closure_notes: Optional[str] = None
+    closure_notes: Optional[str] = Field(default=None, max_length=MAX_NOTES_LENGTH)
+
+    @field_validator("action_type", "label", "details", "assigned_owner", "assigned_team", "notes", "closure_notes", mode="before")
+    @classmethod
+    def strip_action_text(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
 
 class ActionLogResponse(BaseModel):
