@@ -89,6 +89,23 @@ function maxValue(rows: { value: number }[]) {
   return Math.max(...rows.map((item) => item.value), 1);
 }
 
+const chartPalette = ["#146c7c", "#067647", "#a15c07", "#b42318", "#344054", "#667085"];
+
+function compositionBackground(rows: { value: number }[]) {
+  const total = rows.reduce((sum, item) => sum + item.value, 0);
+  if (!total) return "#e5ebf1";
+
+  let cursor = 0;
+  const segments = rows.map((item, index) => {
+    const start = cursor;
+    const size = (item.value / total) * 100;
+    cursor += size;
+    return `${chartPalette[index % chartPalette.length]} ${start}% ${cursor}%`;
+  });
+
+  return `conic-gradient(${segments.join(", ")})`;
+}
+
 export default function ReportingPage() {
   const [cases, setCases] = useState<BackendCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -304,24 +321,28 @@ export default function ReportingPage() {
           title="What outcomes are being achieved"
           description="Closure results, protected/lost estimates, and quality signals from structured outcomes."
         />
-        <div className="outcome-performance-grid">
-          <div className="outcome-hero-panel">
-            <div>
-              <span>Estimated protected</span>
-              <strong>{currency(analytics.protectedAmount)}</strong>
-            </div>
-            <div>
-              <span>Estimated lost</span>
-              <strong>{currency(analytics.lostAmount)}</strong>
-            </div>
-            <p>{analytics.protectedAmount >= analytics.lostAmount ? "Protected amount currently exceeds recorded loss." : "Recorded loss currently exceeds protected amount."}</p>
+        <div className="outcome-console-panel">
+          <div className="compact-metric-strip outcome-metric-strip">
+            <MetricPill label="Protected" value={currency(analytics.protectedAmount)} />
+            <MetricPill label="Lost" value={currency(analytics.lostAmount)} />
+            <MetricPill label="Closure rate" value={`${analytics.closureRate}%`} />
+            <MetricPill label="Follow-up" value={analytics.followUpRequired} />
           </div>
-          <div className="reporting-list outcome-rows">
+
+          <div className="outcome-console-grid">
+            <CompositionCard
+              title="Outcome mix"
+              description={analytics.protectedAmount >= analytics.lostAmount ? "Protected amount exceeds recorded loss." : "Recorded loss exceeds protected amount."}
+              rows={analytics.outcomeRows}
+              emptyText="No structured closure outcomes recorded yet."
+            />
+            <div className="reporting-list outcome-rows compact-outcome-rows">
             <InsightRow label="Closed cases" value={`${analytics.closedCases} (${analytics.closureRate}%)`} />
             <InsightRow label="Member protected" value={analytics.memberProtected} />
             <InsightRow label="Funds sent / loss occurred" value={analytics.fundsLost} />
             <InsightRow label="Trusted contact rate" value={`${analytics.trustedContactRate}%`} />
             <InsightRow label="Fraud ops involvement" value={`${analytics.fraudOpsRate}%`} />
+            </div>
           </div>
         </div>
       </section>
@@ -332,12 +353,24 @@ export default function ReportingPage() {
           title="Where cases are coming from and what they look like"
           description="Source concentration, likely scam pattern, and high-risk distribution."
         />
-        <div className="chart-grid">
-          <BarCard title="Likely scam patterns" description="Deterministic case intelligence classification." rows={analytics.patternRows} />
-          <BarCard title="Source unit volume" description="Where suspected exploitation cases enter the workflow." rows={analytics.sourceRows} />
+        <div className="analytics-console-grid">
+          <div className="analytics-wide-panel">
+            <BarCard title="Likely scam patterns" description="Ranked by deterministic case intelligence classification." rows={analytics.patternRows} />
+          </div>
+          <CompositionCard
+            title="Source mix"
+            description="Entry points for suspected exploitation cases."
+            rows={analytics.sourceRows}
+            emptyText="No source data recorded yet."
+          />
         </div>
-        <div className="chart-grid drilldown-pair">
-          <BarCard title="Risk distribution" description="Current urgency mix across all cases." rows={analytics.riskRows} />
+        <div className="analytics-console-grid drilldown-pair">
+          <CompositionCard
+            title="Risk mix"
+            description="Current urgency composition across all cases."
+            rows={analytics.riskRows}
+            emptyText="No risk data recorded yet."
+          />
           <BarCard
             title="High/Critical concentration by source"
             description="Where elevated-risk cases are concentrated."
@@ -495,6 +528,50 @@ function BarCard({
           <div className="readonly-box">{emptyText}</div>
         )}
       </div>
+    </div>
+  );
+}
+
+function CompositionCard({
+  title,
+  description,
+  rows,
+  emptyText = "No data recorded yet.",
+}: {
+  title: string;
+  description: string;
+  rows: { label: string; value: number }[];
+  emptyText?: string;
+}) {
+  const total = rows.reduce((sum, item) => sum + item.value, 0);
+  const visibleRows = rows.slice(0, 5);
+  const remainingValue = rows.slice(5).reduce((sum, item) => sum + item.value, 0);
+  const chartRows = remainingValue > 0 ? [...visibleRows, { label: "Other", value: remainingValue }] : visibleRows;
+
+  return (
+    <div className="composition-card">
+      <div>
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </div>
+      {total ? (
+        <div className="composition-layout">
+          <div className="composition-donut" style={{ background: compositionBackground(chartRows) }}>
+            <span>{total}</span>
+          </div>
+          <div className="composition-legend">
+            {chartRows.map((item, index) => (
+              <div className="composition-legend-row" key={item.label}>
+                <span style={{ backgroundColor: chartPalette[index % chartPalette.length] }} />
+                <strong>{item.label}</strong>
+                <em>{item.value}</em>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="readonly-box">{emptyText}</div>
+      )}
     </div>
   );
 }

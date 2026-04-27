@@ -456,7 +456,7 @@ export default function OperationsPage() {
         </div>
 
         <aside className="ops-side-column">
-          <div className="workspace-hero sticky-case-panel ops-quick-preview">
+          <div className="workspace-hero ops-quick-preview">
             {selectedCase ? (
               <>
                 <div className="workspace-title-row">
@@ -557,70 +557,10 @@ export default function OperationsPage() {
               </div>
             )}
           </div>
-
-          <div className="workspace-panel">
-            <h3 className="workspace-section-title">Queue guidance</h3>
-            <div className="workspace-stack">
-              <div className="readonly-box">
-                High and critical cases should move from intake to first review
-                with minimal delay.
-              </div>
-              <div className="readonly-box">
-                Branch-originated cases need source-unit visibility and clear
-                ownership handoff.
-              </div>
-              <div className="readonly-box">
-                Document member statements, staff observations, and intervention
-                steps before closure.
-              </div>
-            </div>
-          </div>
-
-          <div className="workspace-panel">
-            <h3 className="workspace-section-title">Operator shortcuts</h3>
-            <div className="nav-row">
-              <Link href="/cases/new">New intake</Link>
-              <Link href="/reporting">Reporting</Link>
-              <Link href="/pilot">Pilot program</Link>
-            </div>
-          </div>
-
-          <div className="workspace-panel admin-utility-panel">
-            <h3 className="workspace-section-title">Demo / admin utilities</h3>
-            <p className="workspace-subtle">
-              Local setup controls for clearing or loading curated demo cases.
-            </p>
-            <div className="demo-cleanup-inline">
-              <button
-                type="button"
-                className="button button-secondary button-compact"
-                onClick={handleDeleteSelectedCase}
-                disabled={actionInFlight || !selectedCase?.backendId}
-              >
-                Delete selected case
-              </button>
-              <button
-                type="button"
-                className="button button-secondary button-compact"
-                onClick={handleResetDemoData}
-                disabled={actionInFlight}
-              >
-                Reset Demo Data
-              </button>
-              <button
-                type="button"
-                className="button button-secondary button-compact"
-                onClick={handleSeedDemoData}
-                disabled={actionInFlight}
-              >
-                Seed Demo Data
-              </button>
-            </div>
-          </div>
         </aside>
       </section>
 
-      <section className="ops-lower-grid">
+      <section className="ops-support-grid">
         <div className="workspace-panel">
           <h3 className="workspace-section-title">Recent activity</h3>
           <div className="timeline-list">
@@ -639,6 +579,15 @@ export default function OperationsPage() {
         </div>
 
         <div className="workspace-panel">
+          <h3 className="workspace-section-title">Queue guidance</h3>
+          <div className="ops-guidance-list">
+            <div className="readonly-box">High and critical cases should move from intake to first review with minimal delay.</div>
+            <div className="readonly-box">Branch-originated cases need source-unit visibility and clear ownership handoff.</div>
+            <div className="readonly-box">Document member statements, staff observations, and intervention steps before closure.</div>
+          </div>
+        </div>
+
+        <div className="workspace-panel">
           <h3 className="workspace-section-title">Source-unit snapshot</h3>
           <div className="reporting-list">
             {sourceSnapshot.map((item) => (
@@ -647,6 +596,42 @@ export default function OperationsPage() {
                 <div className="reporting-row-value">{item.value}</div>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="workspace-panel admin-utility-panel">
+          <h3 className="workspace-section-title">Demo / admin utilities</h3>
+          <p className="workspace-subtle">Local setup controls for clearing or loading curated demo cases.</p>
+          <div className="demo-cleanup-inline">
+            <button
+              type="button"
+              className="button button-secondary button-compact"
+              onClick={handleDeleteSelectedCase}
+              disabled={actionInFlight || !selectedCase?.backendId}
+            >
+              Delete selected case
+            </button>
+            <button
+              type="button"
+              className="button button-secondary button-compact"
+              onClick={handleResetDemoData}
+              disabled={actionInFlight}
+            >
+              Reset Demo Data
+            </button>
+            <button
+              type="button"
+              className="button button-secondary button-compact"
+              onClick={handleSeedDemoData}
+              disabled={actionInFlight}
+            >
+              Seed Demo Data
+            </button>
+          </div>
+          <div className="nav-row ops-utility-links">
+            <Link href="/cases/new">New intake</Link>
+            <Link href="/reporting">Reporting</Link>
+            <Link href="/pilot">Pilot program</Link>
           </div>
         </div>
       </section>
