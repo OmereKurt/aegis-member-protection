@@ -1,300 +1,250 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { listCases, type BackendCase } from "./lib/cases";
 
-export default function LandingPage() {
+const workflowSteps = [
+  "Intake",
+  "Intelligence",
+  "Guided Intervention",
+  "Closure",
+  "Reporting",
+];
+
+const differentiators = [
+  {
+    title: "Explainable case intelligence",
+    body: "Transforms intake signals into likely pattern, risk drivers, missing information, and suggested escalation path.",
+  },
+  {
+    title: "Guided intervention playbook",
+    body: "Gives operators a structured sequence for member intent, funds status, callback, escalation, and closure readiness.",
+  },
+  {
+    title: "Structured closure outcomes",
+    body: "Captures outcome type, protected/lost amounts, follow-up flags, trusted contact engagement, and fraud ops involvement.",
+  },
+  {
+    title: "Management reporting",
+    body: "Turns live case data into operational visibility across source units, risk concentration, outcomes, and workflow bottlenecks.",
+  },
+];
+
+const teamGroups = [
+  "Branch operations",
+  "Contact center",
+  "Fraud operations",
+  "Member protection leaders",
+];
+
+const playbookStepLabels = [
+  "Verify member intent",
+  "Confirm transaction / funds status",
+  "Attempt safe member callback",
+  "Consider trusted contact",
+  "Escalate to supervisor or fraud ops",
+  "Record intervention result",
+  "Close case with outcome",
+];
+
+function currency(value: number) {
+  return value.toLocaleString([], {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function isElevatedRisk(record: BackendCase) {
+  return record.urgency === "High" || record.urgency === "Critical";
+}
+
+function hasPlaybookCompleted(record: BackendCase, label: string) {
+  const text = record.action_logs
+    .map((log) => `${log.action_type} ${log.details}`)
+    .join("\n")
+    .toLowerCase();
+  return text.includes(`playbook step completed: ${label.toLowerCase()}`);
+}
+
+function percent(count: number, total: number) {
+  if (!total) return 0;
+  return Math.round((count / total) * 100);
+}
+
+export default function HomePage() {
+  const [cases, setCases] = useState<BackendCase[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    async function loadSnapshot() {
+      try {
+        setIsLoading(true);
+        const records = await listCases();
+        setCases(records);
+        setLoadError("");
+      } catch {
+        setCases([]);
+        setLoadError("Live backend snapshot unavailable.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    const timeout = window.setTimeout(() => {
+      void loadSnapshot();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  const snapshot = useMemo(() => {
+    const totalCases = cases.length;
+    const openCases = cases.filter((item) => item.status !== "Closed").length;
+    const elevatedRiskCases = cases.filter(isElevatedRisk).length;
+    const casesWithPlaybookProgress = cases.filter((item) =>
+      playbookStepLabels.some((label) => hasPlaybookCompleted(item, label))
+    ).length;
+    const protectedAmount = cases.reduce(
+      (sum, item) => sum + Number(item.estimated_amount_protected || 0),
+      0
+    );
+
+    return {
+      totalCases,
+      openCases,
+      elevatedRiskCases,
+      playbookProgress: percent(casesWithPlaybookProgress, totalCases),
+      protectedAmount,
+    };
+  }, [cases]);
+
   return (
-    <main className="page-wrap">
-      <section className="hero">
-        <div className="hero-grid">
-          <div className="hero-card">
-            <div className="hero-eyebrow">Built for credit union operations</div>
-
-            <h1>
-              Suspected elder exploitation cases still break down in{" "}
-              <span className="hero-highlight">handoffs, notes, and memory</span>
-              .
-            </h1>
-
-            <p>
-              Aegis gives credit unions a dedicated workflow to intake concerns,
-              assess urgency, escalate faster, document actions, and keep
-              ownership visible from first concern to final outcome.
-            </p>
-
-            <p>
-              Built for the cases generic queues, spreadsheets, and ad hoc notes
-              handle badly.
-            </p>
-
-            <div className="hero-actions">
-              <Link href="/ops" className="button">
-                Open Workspace
-              </Link>
-              <Link href="/reporting" className="button button-secondary">
-                View Reporting
-              </Link>
-            </div>
-
-            <div className="hero-proof-row">
-              <div className="hero-proof-pill">Operational workflow</div>
-              <div className="hero-proof-pill">Cross-team case handling</div>
-              <div className="hero-proof-pill">Source-unit visibility</div>
-            </div>
-
-            <div className="workspace-shortcuts">
-              <Link href="/ops" className="shortcut-card">
-                <div className="shortcut-label">Workspace</div>
-                <div className="shortcut-title">Active case operations</div>
-                <div className="shortcut-desc">
-                  Review the queue, select a case, and act from one workspace.
-                </div>
-              </Link>
-
-              <Link href="/reporting" className="shortcut-card">
-                <div className="shortcut-label">Reporting</div>
-                <div className="shortcut-title">Management visibility</div>
-                <div className="shortcut-desc">
-                  Review volume, source-unit mix, outcomes, and workflow
-                  bottlenecks.
-                </div>
-              </Link>
-
-              <Link href="/cases/new" className="shortcut-card">
-                <div className="shortcut-label">Intake</div>
-                <div className="shortcut-title">Structured case entry</div>
-                <div className="shortcut-desc">
-                  Capture observations, member context, and escalation signals in
-                  a consistent format.
-                </div>
-              </Link>
-            </div>
-          </div>
-
-          <div className="hero-metrics">
-            <div className="metric-card">
-              <div className="metric-label">Why this is hard</div>
-              <div className="metric-value">
-                Concern starts in one channel, decision happens in another
-              </div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">What gets lost</div>
-              <div className="metric-value">
-                Staff observations, urgency, and ownership across handoffs
-              </div>
-            </div>
-
-            <div className="metric-card">
-              <div className="metric-label">What Aegis adds</div>
-              <div className="metric-value">
-                A dedicated operating workflow for a high-friction case type
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="split-highlight">
-          <div className="highlight-panel">
-            <h3>Generic case tools were not built for this workflow.</h3>
-            <p>
-              Suspected elder exploitation cases often begin with partial
-              context, staff observations, unusual urgency, and sensitive
-              cross-team escalation. The problem is not simply storing a case.
-              The problem is creating a workflow operators can actually use under
-              pressure.
-            </p>
-
-            <div className="mini-pills">
-              <div className="mini-pill">Branch-originated concerns</div>
-              <div className="mini-pill">Contact center escalation</div>
-              <div className="mini-pill">Cross-team ownership</div>
-              <div className="mini-pill">Audit-ready documentation</div>
-            </div>
-          </div>
-
-          <div className="highlight-stats">
-            <div className="highlight-stat">
-              <div className="highlight-stat-label">The real pain</div>
-              <div className="highlight-stat-value">
-                inconsistent intake and escalation
-              </div>
-            </div>
-
-            <div className="highlight-stat">
-              <div className="highlight-stat-label">What leaders need</div>
-              <div className="highlight-stat-value">
-                clear visibility by source unit, owner, and outcome
-              </div>
-            </div>
-
-            <div className="highlight-stat">
-              <div className="highlight-stat-label">What operators need</div>
-              <div className="highlight-stat-value">
-                one place to review, act, document, and hand off
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">Where the workflow breaks today</h2>
-        <p className="section-subtitle">
-          Most institutions already have alerts, notes, and case tools. What
-          they do not have is a workflow designed specifically for suspected
-          member exploitation handling.
-        </p>
-
-        <div className="compact-points">
-          <div className="compact-point">
-            <div className="compact-point-mark">1</div>
-            <div className="compact-point-text">
-              <strong>Concern starts in fragmented channels</strong>
-              <span>
-                Branch staff, contact center teams, and digital channels all
-                capture different parts of the same problem.
-              </span>
-            </div>
-          </div>
-
-          <div className="compact-point">
-            <div className="compact-point-mark">2</div>
-            <div className="compact-point-text">
-              <strong>Escalation becomes judgment-heavy</strong>
-              <span>
-                Operators often rely on memory, scattered notes, and ad hoc
-                handoff decisions instead of a clearer escalation path.
-              </span>
-            </div>
-          </div>
-
-          <div className="compact-point">
-            <div className="compact-point-mark">3</div>
-            <div className="compact-point-text">
-              <strong>Ownership and visibility weaken over time</strong>
-              <span>
-                Leaders can count cases, but it is harder to see where they
-                started, how they moved, and where the workflow slowed down.
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">How Aegis works in practice</h2>
-        <p className="section-subtitle">
-          Aegis gives teams a cleaner operating model from first concern to
-          documented resolution.
-        </p>
-
-        <div className="process-row">
-          <div className="process-step">
-            <div className="process-step-number">1</div>
-            <h3>Intake</h3>
-            <p>
-              Capture member context, observations, suspicious activity, and
-              structured risk indicators.
-            </p>
-          </div>
-
-          <div className="process-step">
-            <div className="process-step-number">2</div>
-            <h3>Triage</h3>
-            <p>
-              Turn narrative concerns into urgency, recommended actions, and
-              escalation guidance.
-            </p>
-          </div>
-
-          <div className="process-step">
-            <div className="process-step-number">3</div>
-            <h3>Operate</h3>
-            <p>
-              Assign owners, document actions, review timelines, and keep the
-              case moving in one workspace.
-            </p>
-          </div>
-
-          <div className="process-step">
-            <div className="process-step-number">4</div>
-            <h3>Report</h3>
-            <p>
-              Give management visibility into source-unit distribution,
-              bottlenecks, case outcomes, and workflow patterns.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <h2 className="section-title">What changes when the workflow is structured</h2>
-        <p className="section-subtitle">
-          The value is not just better case storage. It is faster handling,
-          stronger consistency, and better operational visibility.
-        </p>
-
-        <div className="visual-grid">
-          <div className="visual-card">
-            <div className="icon-badge dark">O</div>
-            <h3>Operators move faster</h3>
-            <p>
-              Teams can review, escalate, assign, and document from one
-              workspace instead of piecing the process together manually.
-            </p>
-          </div>
-
-          <div className="visual-card">
-            <div className="icon-badge">V</div>
-            <h3>Visibility improves</h3>
-            <p>
-              Source-unit activity, ownership, and workflow progression stay
-              visible across the case lifecycle.
-            </p>
-          </div>
-
-          <div className="visual-card">
-            <div className="icon-badge green">M</div>
-            <h3>Management gets signal</h3>
-            <p>
-              Reporting becomes more useful when leaders can see where cases
-              originate, where they escalate, and where they stall.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <div className="cta-banner">
-          <h2>A dedicated workflow for a workflow that is usually improvised</h2>
+    <main className="page-wrap home-console-page workspace-shell">
+      <section className="home-console-hero console-panel">
+        <div className="home-hero-main">
+          <div className="page-kicker">Aegis Member Protection</div>
+          <h1>A workflow system for suspected elder financial exploitation cases.</h1>
           <p>
-            Aegis is designed to make suspected elder exploitation handling feel
-            like a real operating system, not a patchwork of notes, queues, and
-            manual follow-up.
+            Aegis helps credit unions and regional banks intake concerns, assess
+            risk, guide interventions, document actions, close outcomes, and
+            report on member protection workflows.
           </p>
 
-          <div className="hero-actions">
+          <div className="home-action-row">
             <Link href="/ops" className="button">
-              Open Workspace
+              Open Operations
             </Link>
             <Link href="/cases/new" className="button button-secondary">
-              Start New Intake
+              Start Intake
+            </Link>
+            <Link href="/reporting" className="button button-secondary">
+              View Reporting
             </Link>
           </div>
+        </div>
 
-          <div className="cta-mini-note">
-            Current focus: workflow fit, operator usability, and early pilot
-            readiness.
+        <aside className="home-snapshot inspector-panel">
+          <div className="home-panel-header">
+            <div>
+              <div className="page-kicker">System snapshot</div>
+              <h2>Live case posture</h2>
+            </div>
+            <span className="report-live-pill">
+              {isLoading ? "Loading" : loadError ? "Unavailable" : "Live"}
+            </span>
           </div>
+
+          {loadError ? (
+            <div className="readonly-box">
+              <strong>Backend unavailable</strong>
+              <p>Live case metrics will appear when the FastAPI backend is reachable.</p>
+            </div>
+          ) : (
+            <div className="home-snapshot-grid">
+              <Metric label="Open cases" value={isLoading ? "..." : snapshot.openCases} />
+              <Metric label="Elevated risk" value={isLoading ? "..." : snapshot.elevatedRiskCases} />
+              <Metric label="Playbook progress" value={isLoading ? "..." : `${snapshot.playbookProgress}%`} />
+              <Metric label="Protected amount" value={isLoading ? "..." : currency(snapshot.protectedAmount)} />
+            </div>
+          )}
+
+          {!isLoading && !loadError && snapshot.totalCases === 0 ? (
+            <div className="home-empty-note">
+              Reporting and snapshot metrics will populate as intakes are submitted or curated demo data is seeded.
+            </div>
+          ) : null}
+        </aside>
+      </section>
+
+      <section className="home-workflow-panel console-panel">
+        <div className="home-panel-header">
+          <div>
+            <div className="page-kicker">Operating model</div>
+            <h2>From first concern to management visibility</h2>
+          </div>
+        </div>
+        <div className="home-workflow-row">
+          {workflowSteps.map((step, index) => (
+            <div className="home-workflow-step" key={step}>
+              <span>{index + 1}</span>
+              <strong>{step}</strong>
+            </div>
+          ))}
         </div>
       </section>
 
-      <div className="footer-note">
-        Early product focused on turning a high-friction case type into a
-        structured operational workflow.
-      </div>
+      <section className="home-console-grid">
+        <div className="console-panel">
+          <div className="home-panel-header">
+            <div>
+              <div className="page-kicker">Product differentiators</div>
+              <h2>Purpose-built case operations</h2>
+            </div>
+          </div>
+          <div className="home-differentiator-list">
+            {differentiators.map((item) => (
+              <div className="home-differentiator-row" key={item.title}>
+                <strong>{item.title}</strong>
+                <p>{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="console-panel">
+          <div className="home-panel-header">
+            <div>
+              <div className="page-kicker">Built for teams</div>
+              <h2>One workflow across operating groups</h2>
+            </div>
+          </div>
+          <div className="home-team-list">
+            {teamGroups.map((team) => (
+              <div className="home-team-row" key={team}>
+                <span />
+                <strong>{team}</strong>
+              </div>
+            ))}
+          </div>
+          <p className="home-team-note">
+            Aegis keeps branch observations, contact center signals, fraud review,
+            and leadership reporting connected to the same backend-backed case
+            record.
+          </p>
+        </div>
+      </section>
     </main>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="metric-pill analytics-tile">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
