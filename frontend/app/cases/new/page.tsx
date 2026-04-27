@@ -78,7 +78,7 @@ const ageBands = ["Unknown", "Under 60", "60-69", "70-79", "80-89", "90+"];
 const sourceUnits = [
   "Downtown Branch",
   "North Branch",
-  "Call Center",
+  "Contact Center",
   "Digital Banking",
   "Fraud Queue",
 ];
@@ -242,7 +242,7 @@ export default function NewIntakePage() {
     const signals = [];
 
     if (form.memberStillOnPhoneWithScammer) {
-      signals.push("Live coaching / scammer still on the line");
+      signals.push("Live coaching may be in progress");
     }
     if (form.newPayeeOrDestination) {
       signals.push("New payee or transfer destination");
@@ -396,7 +396,7 @@ export default function NewIntakePage() {
         router.push(`/ops?selected=${createdCase.id}`);
       }, 450);
     } catch {
-      setSaveStatus("Unable to submit intake right now");
+      setSaveStatus("Unable to submit intake. Check connection and try again.");
       setIsSubmitting(false);
     }
   };
@@ -609,7 +609,7 @@ export default function NewIntakePage() {
                   onChange={(value) => updateField("fundsMayHaveLeft", value)}
                 />
                 <ToggleCard
-                  label="Member may still be on the phone with the scammer"
+                  label="Member may still be under live coaching"
                   checked={form.memberStillOnPhoneWithScammer}
                   onChange={(value) =>
                     updateField("memberStillOnPhoneWithScammer", value)

@@ -32,7 +32,7 @@ const structuredActions: {
     priority: "primary",
     payload: () => ({
       label: "Verify member intent",
-      details: "Operator initiated independent member-intent verification from the full case workspace.",
+      details: "Operator initiated independent member-intent verification from the case workspace.",
     }),
   },
   {
@@ -42,7 +42,7 @@ const structuredActions: {
     payload: () => ({
       label: "Escalate to supervisor",
       status: "Escalated",
-      details: "Supervisor escalation recorded from the full case workspace.",
+      details: "Supervisor escalation recorded from the case workspace.",
     }),
   },
   {
@@ -53,7 +53,7 @@ const structuredActions: {
       label: "Assign to fraud ops",
       assigned_owner: "Fraud Ops",
       assigned_team: "Fraud Operations",
-      details: "Case assigned to Fraud Operations from the full case workspace.",
+      details: "Case assigned to Fraud Operations from the case workspace.",
     }),
   },
   {
@@ -91,7 +91,7 @@ const structuredActions: {
     payload: (record) => ({
       label: "Mark intervention complete",
       status: record.status === "Closed" ? "Closed" : "In Review",
-      details: "Immediate intervention marked complete from the full case workspace.",
+      details: "Immediate intervention marked complete from the case workspace.",
     }),
   },
 ];
@@ -279,6 +279,15 @@ function formatCurrency(value?: number | null) {
   });
 }
 
+function displayPattern(value?: string | null) {
+  if (!value) return "Unknown / other";
+  return value
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function formatTime(value?: string | null) {
   if (!value) return "Unknown";
   return new Date(value).toLocaleString([], {
@@ -299,7 +308,7 @@ function trackedAmount(value: string) {
 }
 
 function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong";
+  return error instanceof Error ? error.message : "Unable to complete the request.";
 }
 
 export default function CaseDetailPage() {
@@ -457,7 +466,7 @@ export default function CaseDetailPage() {
     <main className="page-wrap full-case-page-wrap workspace-shell investigation-console">
       <section className="page-header full-case-page-header console-page-header">
         <div>
-          <div className="page-kicker">Full case workspace</div>
+          <div className="page-kicker">Case workspace</div>
           <h1 className="page-title">{caseData?.title || "Member protection case"}</h1>
         </div>
         <div className="button-row full-case-header-actions">
@@ -467,7 +476,7 @@ export default function CaseDetailPage() {
         </div>
       </section>
 
-      {isLoading ? <div className="ops-inline-banner">Loading case workspace...</div> : null}
+      {isLoading ? <div className="ops-inline-banner">Loading case record...</div> : null}
       {error ? <div className="ops-inline-banner">{error}</div> : null}
       {feedback ? <div className="ops-inline-banner">{feedback}</div> : null}
 
@@ -491,7 +500,7 @@ export default function CaseDetailPage() {
               </div>
               <div className="workspace-meta-item">
                 <div className="label">Likely pattern</div>
-                <div className="value">{intelligence?.likely_pattern || caseData.scam_type}</div>
+                <div className="value">{intelligence?.likely_pattern || displayPattern(caseData.scam_type)}</div>
               </div>
               <div className="workspace-meta-item">
                 <div className="label">Source unit</div>
@@ -575,7 +584,7 @@ export default function CaseDetailPage() {
                   <div className="readonly-box">
                     <strong>Missing information</strong>
                     <ul className="workspace-list">
-                      {(intelligence?.missing_information || ["No missing information recorded."]).map((item) => (
+                      {(intelligence?.missing_information || ["No missing information identified."]).map((item) => (
                         <li key={item}>{item}</li>
                       ))}
                     </ul>
@@ -595,7 +604,7 @@ export default function CaseDetailPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="muted">No case history has been logged yet.</div>
+                    <div className="muted">No action history yet.</div>
                   )}
                 </div>
               </section>
@@ -603,7 +612,7 @@ export default function CaseDetailPage() {
 
             <aside className="full-case-side-column operator-cockpit inspector-panel">
               <section className="workspace-panel cockpit-panel cockpit-intelligence">
-                <h3 className="workspace-section-title">Case Intelligence</h3>
+                <h3 className="workspace-section-title">Case intelligence</h3>
                 <div className="reporting-list">
                   <div className="reporting-row">
                     <div className="reporting-row-label">Signal strength</div>
@@ -611,7 +620,7 @@ export default function CaseDetailPage() {
                   </div>
                   <div className="reporting-row">
                     <div className="reporting-row-label">Pattern</div>
-                    <div className="reporting-row-value">{intelligence?.likely_pattern || caseData.scam_type}</div>
+                    <div className="reporting-row-value">{intelligence?.likely_pattern || displayPattern(caseData.scam_type)}</div>
                   </div>
                 </div>
                 <ul className="workspace-list">
@@ -624,7 +633,7 @@ export default function CaseDetailPage() {
               <section className="workspace-panel cockpit-panel cockpit-playbook">
                 <div className="workspace-title-row">
                   <div className="workspace-title-block">
-                    <h3 className="workspace-section-title">Guided Intervention Playbook</h3>
+                    <h3 className="workspace-section-title">Guided intervention playbook</h3>
                     <p className="workspace-subtle">
                       {caseData.status === "Closed"
                         ? "Case closed. Playbook is read-only."
@@ -694,7 +703,7 @@ export default function CaseDetailPage() {
               </section>
 
               <section className="workspace-panel cockpit-panel cockpit-actions" id="closure-outcome">
-                <h3 className="workspace-section-title">Primary Actions</h3>
+                <h3 className="workspace-section-title">Primary actions</h3>
                 <div className="primary-action-grid">
                   {primaryActions.map((action) => (
                     <button
@@ -766,7 +775,7 @@ export default function CaseDetailPage() {
               </section>
 
               <section className="workspace-panel cockpit-panel cockpit-notes">
-                <h3 className="workspace-section-title">Operator Notes</h3>
+                <h3 className="workspace-section-title">Operator notes</h3>
                 <div className="field-group">
                   <label>Case notes</label>
                   <textarea rows={5} value={notesValue} onChange={(event) => setNotesValue(event.target.value)} />
@@ -779,7 +788,7 @@ export default function CaseDetailPage() {
               </section>
 
               <section className="workspace-panel cockpit-panel cockpit-closure">
-                <h3 className="workspace-section-title">Closure / Outcome</h3>
+                <h3 className="workspace-section-title">Closure / outcome</h3>
                 {caseData.status === "Closed" ? (
                   <div className="closure-summary-box">
                     <div className="reporting-list">
@@ -853,7 +862,7 @@ export default function CaseDetailPage() {
                     </div>
                   </div>
                   <p className="field-help">
-                    Currency amounts are stored as USD and capped at {formatCurrency(MAX_TRACKED_AMOUNT)} for clean demo reporting.
+                    Currency amounts are stored as USD and capped at {formatCurrency(MAX_TRACKED_AMOUNT)} for reporting quality.
                   </p>
 
                   <div className="closure-toggle-row">

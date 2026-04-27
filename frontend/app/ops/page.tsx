@@ -17,7 +17,7 @@ const defaultIntelligence: CaseIntelligence = {
   likely_pattern: "Unknown / other",
   signal_strength: "Limited",
   risk_drivers: ["Review the intake narrative and operator notes."],
-  missing_information: ["Additional structured intelligence is not available for this demo case."],
+  missing_information: ["Additional structured intelligence is not available for this case."],
   recommended_next_steps: ["Document the member conversation and assign the next owner."],
   suggested_escalation_path: ["Move the case into active review if staff concern remains."],
   structured_signals: [],
@@ -86,7 +86,7 @@ export default function OperationsPage() {
 
       if (selectedFromUrl && mapped.some((item) => item.id === selectedFromUrl)) {
         setSelectedCaseId(selectedFromUrl);
-        setActionFeedback(`New intake ${selectedFromUrl} added to the queue.`);
+        setActionFeedback(`Intake ${selectedFromUrl} added to the case queue.`);
         window.history.replaceState(null, "", "/ops");
       } else if (mapped.length > 0 && !mapped.some((item) => item.id === selectedCaseId)) {
         setSelectedCaseId(mapped[0].id);
@@ -204,7 +204,7 @@ export default function OperationsPage() {
       await resetDemoData();
       setSelectedCaseId("");
       await loadCases();
-      setActionFeedback("Demo data reset. The shared queue is now clean.");
+      setActionFeedback("Demo data reset. The case queue is clear.");
     } catch {
       setActionFeedback("Unable to reset demo data right now.");
     } finally {
@@ -217,7 +217,7 @@ export default function OperationsPage() {
       setActionInFlight(true);
       const result = await seedDemoData();
       await loadCases();
-      setActionFeedback(`Seeded ${result.seeded_cases} curated demo cases for Reporting and screenshots.`);
+      setActionFeedback(`Seeded ${result.seeded_cases} curated demo cases for evaluation.`);
     } catch {
       setActionFeedback("Unable to seed demo data right now.");
     } finally {
@@ -229,8 +229,8 @@ export default function OperationsPage() {
     <main className="page-wrap ops-page-wrap workspace-shell">
       <section className="page-header console-page-header">
         <div>
-          <div className="page-kicker">Operations workspace</div>
-          <h1 className="page-title">Case queue and operator workspace</h1>
+          <div className="page-kicker">Operations</div>
+          <h1 className="page-title">Case queue and triage</h1>
           <p className="page-subtitle">
             Review active cases, assess urgency, coordinate escalation, and keep
             ownership clear across branch, contact center, and fraud operations.
@@ -278,16 +278,16 @@ export default function OperationsPage() {
                   <span className="queue-result-count">{filteredQueue.length} visible / {cases.length} total</span>
                 </h2>
                 <p>
-                  Select a case to update the focused workspace on the right.
+                  Select a case to review the inspector and open the full case workspace.
                 </p>
               </div>
 
               <div className="button-row">
                 <Link href="/cases/new" className="button">
-                  Start New Intake
+                  Start Intake
                 </Link>
                 <Link href="/reporting" className="button button-secondary">
-                  Open Reporting
+                  View Reporting
                 </Link>
               </div>
             </div>
@@ -304,7 +304,7 @@ export default function OperationsPage() {
                   <div className="system-state-kicker">Backend unavailable</div>
                   <h3>Live operations data cannot be loaded</h3>
                   <p>
-                    The queue is intentionally blank until the FastAPI backend responds. Demo utilities remain available below for local setup, but no fallback cases are being shown as live data.
+                    The queue is intentionally blank until the backend responds. Demo utilities remain available for local evaluation, but no fallback cases are shown as live data.
                   </p>
                 </div>
                 <button
@@ -411,10 +411,10 @@ export default function OperationsPage() {
                             </div>
                             <div className="button-row" style={{ marginTop: 14 }}>
                               <Link href="/cases/new" className="button">
-                                Start New Intake
+                                Start Intake
                               </Link>
                               <Link href="/reporting" className="button button-secondary">
-                                Open Reporting
+                                View Reporting
                               </Link>
                             </div>
                           </div>
@@ -472,7 +472,7 @@ export default function OperationsPage() {
                   <div className="workspace-title-block">
                     <h2>Quick preview</h2>
                     <p className="workspace-subtle">
-                      Select and open the full workspace when ready to act.
+                      Open the full case workspace when ready to act.
                     </p>
                   </div>
 
@@ -532,7 +532,7 @@ export default function OperationsPage() {
                         <div className="reporting-row-value">{selectedCase.closure?.outcomeLabel}</div>
                       </div>
                       <p className="workspace-subtle">
-                        {selectedCase.closure?.closureSummary || "No closure summary recorded."}
+                        {selectedCase.closure?.closureSummary || "No closure summary available."}
                       </p>
                     </div>
                   ) : null}
@@ -548,19 +548,19 @@ export default function OperationsPage() {
             ) : (
               <div className="focused-case-stack">
                 <div className="workspace-title-block">
-                  <h2>Focused case view</h2>
+                  <h2>Case inspector</h2>
                   <p className="workspace-subtle">
-                    No case is selected. Start a new intake to create the first case or
-                    load sample data to begin.
+                    No case is selected. Start an intake or seed demo data from
+                    the utility panel to evaluate the workflow.
                   </p>
                 </div>
 
                 <div className="button-row">
                   <Link href="/cases/new" className="button">
-                    Start New Intake
+                    Start Intake
                   </Link>
                   <Link href="/reporting" className="button button-secondary">
-                    Open Reporting
+                    View Reporting
                   </Link>
                 </div>
               </div>
@@ -610,7 +610,7 @@ export default function OperationsPage() {
 
         <div className="workspace-panel admin-utility-panel utility-panel">
           <h3 className="workspace-section-title">Demo / admin utilities</h3>
-          <p className="workspace-subtle">Local setup controls for clearing or loading curated demo cases.</p>
+          <p className="workspace-subtle">Evaluation controls for clearing or loading curated demo cases.</p>
           <div className="demo-cleanup-inline">
             <button
               type="button"
@@ -638,9 +638,9 @@ export default function OperationsPage() {
             </button>
           </div>
           <div className="nav-row ops-utility-links">
-            <Link href="/cases/new">New intake</Link>
+            <Link href="/cases/new">Start Intake</Link>
             <Link href="/reporting">Reporting</Link>
-            <Link href="/pilot">Pilot program</Link>
+            <Link href="/pilot">Pilot</Link>
           </div>
         </div>
       </section>

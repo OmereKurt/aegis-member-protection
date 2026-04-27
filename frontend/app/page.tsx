@@ -160,7 +160,7 @@ export default function HomePage() {
           {loadError ? (
             <div className="readonly-box">
               <strong>Backend unavailable</strong>
-              <p>Live case metrics will appear when the FastAPI backend is reachable.</p>
+              <p>Live case metrics will appear when the backend connection is restored.</p>
             </div>
           ) : (
             <div className="home-snapshot-grid">
@@ -173,7 +173,7 @@ export default function HomePage() {
 
           {!isLoading && !loadError && snapshot.totalCases === 0 ? (
             <div className="home-empty-note">
-              Reporting and snapshot metrics will populate as intakes are submitted or curated demo data is seeded.
+              Snapshot metrics will populate as intakes are submitted or demo data is seeded from Operations.
             </div>
           ) : null}
         </aside>

@@ -58,6 +58,15 @@ function sortedRows(counts: Record<string, number>) {
     .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
 }
 
+function displayPattern(value?: string | null) {
+  if (!value) return "Unknown / other";
+  return value
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function logText(record: BackendCase) {
   return record.action_logs.map((log) => `${log.action_type} ${log.details}`.toLowerCase()).join("\n");
 }
@@ -120,7 +129,7 @@ export default function ReportingPage() {
         setLoadError("");
       } catch {
         setCases([]);
-        setLoadError("Unable to reach the backend. Reporting will populate when live case data is available.");
+        setLoadError("System connection issue. Reporting will populate when live case data is available.");
       } finally {
         setIsLoading(false);
       }
@@ -146,7 +155,7 @@ export default function ReportingPage() {
     const fraudOpsInvolved = cases.filter((item) => item.fraud_ops_involved).length;
 
     const patternRows = sortedRows(
-      countBy(cases, (item) => item.case_intelligence?.likely_pattern || item.scam_type || "Unknown / other")
+      countBy(cases, (item) => item.case_intelligence?.likely_pattern || displayPattern(item.scam_type))
     );
     const sourceRows = sortedRows(countBy(cases, sourceGroup));
     const riskRows = sortedRows(countBy(cases, (item) => item.urgency));
@@ -246,7 +255,7 @@ export default function ReportingPage() {
       <section className="page-header reporting-console-header console-page-header">
         <div>
           <div className="page-kicker">Management reporting</div>
-          <h1 className="page-title">Operational reporting</h1>
+          <h1 className="page-title">Management reporting</h1>
           <p className="page-subtitle">
             Live management view of case volume, risk concentration, playbook progress, and intervention outcomes.
           </p>
@@ -259,10 +268,10 @@ export default function ReportingPage() {
 
           <div className="button-row">
             <Link href="/ops" className="button button-secondary">
-              Back to Workspace
+              Open Operations
             </Link>
             <Link href="/cases/new" className="button">
-              Start New Intake
+              Start Intake
             </Link>
           </div>
         </div>
@@ -278,7 +287,7 @@ export default function ReportingPage() {
       <section className="management-briefing console-briefing-band">
         <div className="briefing-lead">
           <div className="page-kicker">Executive summary</div>
-          <h2>{analytics.highCriticalCases ? `${analytics.highCriticalCases} elevated-risk cases need attention` : "No elevated-risk cases currently recorded"}</h2>
+          <h2>{analytics.highCriticalCases ? `${analytics.highCriticalCases} elevated-risk cases need attention` : "No elevated-risk cases currently need attention"}</h2>
           <p>
             {analytics.topSource
               ? `${analytics.topSource.label} is the leading source, and ${analytics.topPattern?.label || "unknown patterns"} are most common.`
@@ -335,7 +344,7 @@ export default function ReportingPage() {
                 title="Outcome mix"
                 description={analytics.protectedAmount >= analytics.lostAmount ? "Protected amount exceeds recorded loss." : "Recorded loss exceeds protected amount."}
                 rows={analytics.outcomeRows}
-                emptyText="No structured closure outcomes recorded yet."
+                emptyText="No closure outcomes available yet."
               />
               <div className="reporting-list outcome-rows compact-outcome-rows">
                 <InsightRow label="Closed cases" value={`${analytics.closedCases} (${analytics.closureRate}%)`} />
@@ -353,17 +362,17 @@ export default function ReportingPage() {
         <SectionHeader
           eyebrow="Patterns and source analysis"
           title="Where cases are coming from and what they look like"
-          description="Source concentration, likely scam pattern, and high-risk distribution."
+          description="Source concentration, likely exploitation pattern, and high-risk distribution."
         />
         <div className="analytics-console-grid dashboard-module-grid">
           <div className="analytics-wide-panel">
-            <BarCard title="Likely scam patterns" description="Ranked by deterministic case intelligence classification." rows={analytics.patternRows} />
+            <BarCard title="Likely exploitation patterns" description="Pattern classification from case intelligence." rows={analytics.patternRows} />
           </div>
           <CompositionCard
             title="Source mix"
             description="Entry points for suspected exploitation cases."
             rows={analytics.sourceRows}
-            emptyText="No source data recorded yet."
+            emptyText="No source data available yet."
           />
         </div>
         <div className="analytics-console-grid drilldown-pair">
@@ -371,13 +380,13 @@ export default function ReportingPage() {
             title="Risk mix"
             description="Current urgency composition across all cases."
             rows={analytics.riskRows}
-            emptyText="No risk data recorded yet."
+            emptyText="No risk data available yet."
           />
           <BarCard
             title="High/Critical concentration by source"
             description="Where elevated-risk cases are concentrated."
             rows={analytics.sourceRiskRows}
-            emptyText="No high or critical cases currently recorded."
+            emptyText="No high or critical cases currently need attention."
           />
         </div>
       </section>
@@ -403,7 +412,7 @@ export default function ReportingPage() {
             title="Most completed steps"
             description="Which guided interventions operators record most often."
             rows={analytics.completedStepRows}
-            emptyText="No completed playbook steps recorded yet."
+            emptyText="No completed playbook steps yet."
           />
         </div>
       </section>
@@ -419,13 +428,13 @@ export default function ReportingPage() {
             title="Skipped playbook steps"
             description="Steps operators skipped during guided intervention."
             rows={analytics.skippedStepRows}
-            emptyText="No skipped playbook steps recorded yet."
+            emptyText="No skipped playbook steps yet."
           />
           <BarCard
             title="Outcome mix"
             description="Structured closure outcomes recorded by operators."
             rows={analytics.outcomeRows}
-            emptyText="No structured closure outcomes recorded yet."
+            emptyText="No closure outcomes available yet."
           />
         </div>
         <div className="workspace-panel drilldown-panel">
@@ -438,7 +447,7 @@ export default function ReportingPage() {
               </div>
             ))}
             {analytics.closedCases === 0 ? (
-              <div className="readonly-box">Closed case outcomes will appear here after closure workflows are submitted.</div>
+              <div className="readonly-box">Closed case outcomes will appear after operators submit closure workflows.</div>
             ) : null}
           </div>
         </div>
@@ -497,7 +506,7 @@ function BarCard({
   title,
   description,
   rows,
-  emptyText = "No data recorded yet.",
+  emptyText = "No live data available yet.",
 }: {
   title: string;
   description: string;
@@ -538,7 +547,7 @@ function CompositionCard({
   title,
   description,
   rows,
-  emptyText = "No data recorded yet.",
+  emptyText = "No live data available yet.",
 }: {
   title: string;
   description: string;
