@@ -1,0 +1,188 @@
+# Aegis Deployment and Local Development
+
+This guide covers the current production-engineering setup for Aegis Member Protection.
+
+The app can run in two modes:
+
+- Manual local development with SQLite fallback
+- Docker Compose local development with Postgres
+
+## Services
+
+| Service | Purpose | Default URL |
+| --- | --- | --- |
+| Frontend | Next.js app | `http://localhost:3000` |
+| Backend | FastAPI API | `http://localhost:8000` |
+| Backend docs | FastAPI OpenAPI docs | `http://localhost:8000/docs` |
+| Postgres | Docker database | `localhost:5432` |
+
+## Environment Variables
+
+Backend:
+
+| Variable | Purpose | Default behavior |
+| --- | --- | --- |
+| `DATABASE_URL` | SQLAlchemy database URL | If unset, backend uses SQLite at `sqlite:///./startup_scam_ops.db` |
+| `FRONTEND_URL` | CORS allowlist URL for the frontend | `http://localhost:3000` |
+| `ENVIRONMENT` | Environment label for local/CI/Docker clarity | Optional |
+
+Frontend:
+
+| Variable | Purpose | Default behavior |
+| --- | --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | Browser-facing backend origin used by client-side calls | `http://localhost:8000` |
+| `INTERNAL_API_BASE_URL` | Server/container-facing backend origin used by Next.js rewrites and server-side calls | Falls back to `NEXT_PUBLIC_API_BASE_URL` |
+
+Docker Compose:
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `POSTGRES_DB` | Postgres database name | `aegis` |
+| `POSTGRES_USER` | Postgres username | `aegis` |
+| `POSTGRES_PASSWORD` | Postgres password | `aegis_password` |
+| `POSTGRES_PORT` | Host port for Postgres | `5432` |
+| `BACKEND_PORT` | Host port for FastAPI | `8000` |
+| `FRONTEND_PORT` | Host port for Next.js | `3000` |
+
+Use `.env.example`, `backend/.env.example`, and `frontend/.env.example` as templates. Do not commit real `.env` files.
+
+## Manual Local Development
+
+Use this when you want the simplest local workflow. If `DATABASE_URL` is not set, the backend uses SQLite.
+
+Backend:
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+If you run the backend on port `8001`, set this in `frontend/.env.local`:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8001
+INTERNAL_API_BASE_URL=http://localhost:8001
+```
+
+## Docker Compose Local Development
+
+Run the full stack with Postgres:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- Frontend: `http://localhost:3000`
+- Backend health: `http://localhost:8000/health`
+- Backend docs: `http://localhost:8000/docs`
+
+The Compose backend uses:
+
+```text
+postgresql+psycopg://aegis:aegis_password@db:5432/aegis
+```
+
+In Docker Compose, the frontend uses two backend URLs:
+
+```text
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+INTERNAL_API_BASE_URL=http://backend:8000
+```
+
+`NEXT_PUBLIC_API_BASE_URL` is correct for the browser on your host machine.
+`INTERNAL_API_BASE_URL` is correct inside the frontend container, where `localhost` would otherwise point back to the frontend container itself.
+
+The frontend API helper uses the browser-facing URL in the browser. Next.js rewrites and server-side/container calls use `INTERNAL_API_BASE_URL` when it is set.
+
+## Reset Docker Data
+
+Postgres data is stored in the `postgres_data` Docker volume. To remove local Docker database state:
+
+```bash
+docker compose down -v
+```
+
+Then rebuild:
+
+```bash
+docker compose up --build
+```
+
+## Backend Tests
+
+Backend tests use a temporary SQLite database and do not touch the developer database.
+
+```bash
+cd backend
+pytest
+```
+
+Current coverage includes:
+
+- health endpoint
+- list cases endpoint
+- create case endpoint
+- seed demo data endpoint
+
+## Frontend Checks
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+## CI
+
+GitHub Actions runs on push and pull request:
+
+- frontend install
+- frontend lint
+- frontend build
+- backend install
+- backend tests
+
+Workflow file:
+
+```text
+.github/workflows/ci.yml
+```
+
+## Troubleshooting
+
+Backend unavailable in the UI:
+
+- Confirm the backend is running on the browser-facing URL in `NEXT_PUBLIC_API_BASE_URL`.
+- For manual local dev, verify `http://localhost:8000/health`.
+- For Docker, verify `docker compose ps` and `http://localhost:8000/health`.
+
+Postgres connection errors in Docker:
+
+- Confirm the `db` service is healthy with `docker compose ps`.
+- Run `docker compose down -v` if you want a clean local database.
+- Check that `DATABASE_URL` points at `db:5432` from inside Compose, not `localhost:5432`.
+
+Frontend cannot reach backend in Docker:
+
+- Use `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000` for browser/client calls.
+- Use `INTERNAL_API_BASE_URL=http://backend:8000` for Next.js rewrites and container/server calls.
+- Rebuild the frontend container after changing either value because Next.js uses them during build.
+
+SQLite file confusion:
+
+- If `DATABASE_URL` is unset, the backend writes `startup_scam_ops.db` in the backend working directory.
+- Set `DATABASE_URL` explicitly when you want Postgres or a different SQLite path.

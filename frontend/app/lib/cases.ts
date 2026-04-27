@@ -222,7 +222,27 @@ export type CaseClosurePayload = {
   closure_notes?: string | null;
 };
 
-const API_BASE = "/backend/api/scam-cases";
+const API_PATH = "/api/scam-cases";
+
+function apiBaseUrl() {
+  const browserApiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+
+  if (typeof window === "undefined") {
+    return process.env.INTERNAL_API_BASE_URL || browserApiBase;
+  }
+
+  return browserApiBase;
+}
+
+function apiUrl(path = "") {
+  const baseUrl = apiBaseUrl().replace(/\/$/, "");
+
+  if (!baseUrl) {
+    return `/backend${API_PATH}${path}`;
+  }
+
+  return `${baseUrl}${API_PATH}${path}`;
+}
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -248,22 +268,22 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function listCases() {
-  return fetchJson<BackendCase[]>(`${API_BASE}/`);
+  return fetchJson<BackendCase[]>(apiUrl("/"));
 }
 
 export function getCase(id: number | string) {
-  return fetchJson<BackendCase>(`${API_BASE}/${id}`);
+  return fetchJson<BackendCase>(apiUrl(`/${id}`));
 }
 
 export function createCase(payload: CaseIntakePayload) {
-  return fetchJson<BackendCase>(`${API_BASE}/`, {
+  return fetchJson<BackendCase>(apiUrl("/"), {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export function updateCaseStatus(id: number, status: BackendStatus) {
-  return fetchJson<BackendCase>(`${API_BASE}/${id}/status`, {
+  return fetchJson<BackendCase>(apiUrl(`/${id}/status`), {
     method: "PUT",
     body: JSON.stringify({ status }),
   });
@@ -274,21 +294,21 @@ export function updateCaseAssignment(
   assigned_owner: string | null,
   assigned_team: string | null
 ) {
-  return fetchJson<BackendCase>(`${API_BASE}/${id}/assignment`, {
+  return fetchJson<BackendCase>(apiUrl(`/${id}/assignment`), {
     method: "PUT",
     body: JSON.stringify({ assigned_owner, assigned_team }),
   });
 }
 
 export function updateCaseNotes(id: number, notes: string) {
-  return fetchJson<BackendCase>(`${API_BASE}/${id}/notes`, {
+  return fetchJson<BackendCase>(apiUrl(`/${id}/notes`), {
     method: "PUT",
     body: JSON.stringify({ notes }),
   });
 }
 
 export function closeCase(id: number, payload: CaseClosurePayload) {
-  return fetchJson<BackendCase>(`${API_BASE}/${id}/close`, {
+  return fetchJson<BackendCase>(apiUrl(`/${id}/close`), {
     method: "PUT",
     body: JSON.stringify(payload),
   });
@@ -298,7 +318,7 @@ export function recordCaseAction(id: number, payload: CaseActionPayload) {
   const actionType =
     payload.action_type || payload.label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
 
-  return fetchJson<BackendCase>(`${API_BASE}/${id}/actions`, {
+  return fetchJson<BackendCase>(apiUrl(`/${id}/actions`), {
     method: "POST",
     body: JSON.stringify({
       ...payload,
@@ -308,14 +328,14 @@ export function recordCaseAction(id: number, payload: CaseActionPayload) {
 }
 
 export function deleteCase(id: number) {
-  return fetchJson<{ id: number; deleted: boolean }>(`${API_BASE}/${id}`, {
+  return fetchJson<{ id: number; deleted: boolean }>(apiUrl(`/${id}`), {
     method: "DELETE",
   });
 }
 
 export function resetDemoData() {
   return fetchJson<{ deleted_cases: number; deleted_action_logs: number }>(
-    `${API_BASE}/reset-demo-data`,
+    apiUrl("/reset-demo-data"),
     { method: "POST" }
   );
 }
@@ -325,7 +345,7 @@ export function seedDemoData() {
     seeded_cases: number;
     deleted_cases: number;
     deleted_action_logs: number;
-  }>(`${API_BASE}/seed-demo-data`, { method: "POST" });
+  }>(apiUrl("/seed-demo-data"), { method: "POST" });
 }
 
 function displayStatus(status: string): QueueCase["status"] {

@@ -136,6 +136,25 @@ Make sure you have:
 - Python 3
 - Node.js
 - npm
+- Docker Desktop, if using Docker Compose
+
+---
+
+## Run Everything With Docker Compose
+
+The production-engineering local stack includes the frontend, backend, and Postgres:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000`
+- Backend docs: `http://localhost:8000/docs`
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for environment variables, SQLite/Postgres behavior, and troubleshooting.
 
 ---
 
@@ -147,7 +166,7 @@ python3 -m venv venv
 source venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8001
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 Backend docs should be available at: `http://localhost:8000/docs`
@@ -165,6 +184,60 @@ npm run dev
 ```
 
 Frontend should be available at: `http://localhost:3000`
+
+If you run the backend on a different port, set `NEXT_PUBLIC_API_BASE_URL` and `INTERNAL_API_BASE_URL` in `frontend/.env.local`.
+
+---
+
+## Environment and Persistence
+
+The backend uses SQLite by default when `DATABASE_URL` is not set:
+
+```text
+sqlite:///./startup_scam_ops.db
+```
+
+Set `DATABASE_URL` to use Postgres, for example:
+
+```text
+postgresql+psycopg://aegis:aegis_password@db:5432/aegis
+```
+
+Environment examples are provided in:
+
+- `.env.example`
+- `backend/.env.example`
+- `frontend/.env.example`
+
+Do not commit real local `.env` files.
+
+For Docker Compose, the frontend uses separate backend URLs:
+
+```text
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+INTERNAL_API_BASE_URL=http://backend:8000
+```
+
+The first URL is for the browser on your host machine. The second URL is for the frontend container and Next.js server-side rewrites.
+
+---
+
+## Checks
+
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+Backend:
+
+```bash
+cd backend
+pytest
+```
 
 ---
 

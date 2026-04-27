@@ -4,7 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import inspect, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./startup_scam_ops.db")
+DEFAULT_DATABASE_URL = "sqlite:///./startup_scam_ops.db"
+DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
 
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
@@ -28,6 +29,7 @@ def ensure_case_closure_columns():
         return
 
     existing_columns = {column["name"] for column in inspector.get_columns("scam_cases")}
+    timestamp_type = "DATETIME" if engine.dialect.name == "sqlite" else "TIMESTAMP WITH TIME ZONE"
     closure_columns = {
         "closure_summary": "TEXT",
         "estimated_amount_protected": "FLOAT",
@@ -35,7 +37,7 @@ def ensure_case_closure_columns():
         "trusted_contact_engaged": "BOOLEAN",
         "fraud_ops_involved": "BOOLEAN",
         "follow_up_required": "BOOLEAN",
-        "closed_at": "DATETIME",
+        "closed_at": timestamp_type,
     }
 
     with engine.begin() as connection:
