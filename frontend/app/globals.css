@@ -8250,3 +8250,92 @@ select {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Login alignment fix ===== */
+
+.login-page.workspace-shell {
+  display: grid;
+  align-items: center;
+  width: min(1120px, calc(100vw - 32px));
+  min-height: calc(100vh - 58px);
+  padding-top: clamp(20px, 4vh, 44px);
+  padding-bottom: clamp(24px, 5vh, 56px);
+}
+
+.login-console-grid {
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.login-panel,
+.login-demo-panel {
+  min-height: 460px;
+  padding: 20px;
+}
+
+.login-panel {
+  align-content: center;
+  justify-items: start;
+}
+
+.login-panel h1 {
+  max-width: 620px;
+  font-size: clamp(32px, 4vw, 46px);
+  line-height: 1.02;
+}
+
+.login-panel .page-subtitle {
+  max-width: 600px;
+}
+
+.login-form {
+  width: min(100%, 430px);
+}
+
+.login-security-strip {
+  max-width: 600px;
+}
+
+.login-demo-panel {
+  align-content: start;
+}
+
+.login-demo-panel .reporting-list {
+  gap: 8px;
+}
+
+.demo-user-row {
+  min-height: 58px;
+  border: 1px solid #d7e0ea;
+  border-radius: 5px;
+  background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .login-page.workspace-shell {
+    align-items: start;
+    width: min(100vw - 24px, 720px);
+  }
+
+  .login-console-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-panel,
+  .login-demo-panel {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .login-page.workspace-shell {
+    width: min(100vw - 20px, 720px);
+  }
+
+  .login-panel,
+  .login-demo-panel {
+    padding: 16px;
+  }
+}
