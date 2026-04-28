@@ -5,6 +5,12 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../AuthProvider";
 import {
+  generateCaseSummaryDraft,
+  generateOperatorNoteDraft,
+  generatePlaybookExplanation,
+  type AssistResponse,
+} from "../../lib/assist";
+import {
   closeCase,
   getCase,
   outcomeLabel,
@@ -108,6 +114,8 @@ const emptyClosureForm = {
 };
 
 const MAX_TRACKED_AMOUNT = 1000000;
+
+type AssistDraftKey = "caseSummary" | "operatorNote" | "playbookExplanation";
 
 type PlaybookStatus = "Not started" | "In progress" | "Completed" | "Skipped";
 
@@ -328,6 +336,9 @@ export default function CaseDetailPage() {
   const [showMoreActions, setShowMoreActions] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState("");
+  const [assistDrafts, setAssistDrafts] = useState<Partial<Record<AssistDraftKey, AssistResponse>>>({});
+  const [assistLoading, setAssistLoading] = useState<AssistDraftKey | null>(null);
+  const [assistError, setAssistError] = useState("");
 
   async function loadCase() {
     try {
@@ -338,6 +349,7 @@ export default function CaseDetailPage() {
       setNotesValue(data.notes || "");
       setAssignedOwnerValue(data.assigned_owner || "");
       setAssignedTeamValue(data.assigned_team || "");
+      setAssistError("");
       setClosureForm({
         outcome_type: (data.outcome_type as OutcomeType) || "member_protected",
         closure_summary: data.closure_summary || data.closure_notes || "",
@@ -369,6 +381,7 @@ export default function CaseDetailPage() {
   const primaryActions = structuredActions.filter((action) => action.priority === "primary");
   const secondaryActions = structuredActions.filter((action) => action.priority === "secondary");
   const playbookSteps = useMemo(() => (caseData ? buildPlaybookSteps(caseData) : []), [caseData]);
+  const canGenerateCaseSummary = auth.can("view_cases");
   const canUpdateCase = auth.can("update_case");
   const canCloseCase = auth.can("close_case");
   const recommendedPlaybookStep = useMemo(() => {
@@ -390,6 +403,77 @@ export default function CaseDetailPage() {
     } finally {
       setActionInFlight(false);
     }
+  }
+
+  async function runAssistDraft(key: AssistDraftKey) {
+    if (!caseData) return;
+
+    try {
+      setAssistLoading(key);
+      setAssistError("");
+      const draft =
+        key === "caseSummary"
+          ? await generateCaseSummaryDraft(caseData.id)
+          : key === "operatorNote"
+            ? await generateOperatorNoteDraft(caseData.id)
+            : await generatePlaybookExplanation(caseData.id, recommendedPlaybookStep?.label);
+
+      setAssistDrafts((current) => ({ ...current, [key]: draft }));
+      setFeedback("Aegis Assist draft generated for review.");
+    } catch (err) {
+      setAssistError(errorMessage(err));
+    } finally {
+      setAssistLoading(null);
+    }
+  }
+
+  async function copyAssistDraft(draft: string) {
+    try {
+      await navigator.clipboard.writeText(draft);
+      setFeedback("Assist draft copied.");
+    } catch {
+      setAssistError("Unable to copy draft from this browser.");
+    }
+  }
+
+  function insertOperatorNoteDraft(draft: string) {
+    setNotesValue((current) => (current.trim() ? `${current.trim()}\n\n${draft}` : draft));
+    setFeedback("Operator note draft inserted. Review and save when ready.");
+  }
+
+  function renderAssistDraft(key: AssistDraftKey, title: string) {
+    const draft = assistDrafts[key];
+    if (!draft) return null;
+
+    return (
+      <div className="assist-draft-panel">
+        <div className="assist-draft-header">
+          <div>
+            <span className="assist-draft-kicker">AI-generated draft</span>
+            <strong>{title}</strong>
+          </div>
+          <span className="assist-provider">{draft.provider}</span>
+        </div>
+        <p>{draft.draft}</p>
+        <div className="assist-source-line">Sources: {draft.source_fields.slice(0, 5).join(", ")}</div>
+        <div className="assist-disclaimer">{draft.disclaimer}</div>
+        <div className="button-row assist-draft-actions">
+          <button type="button" className="button button-secondary button-compact" onClick={() => void copyAssistDraft(draft.draft)}>
+            Copy Draft
+          </button>
+          {key === "operatorNote" ? (
+            <button
+              type="button"
+              className="button button-secondary button-compact"
+              onClick={() => insertOperatorNoteDraft(draft.draft)}
+              disabled={!canUpdateCase}
+            >
+              Insert Into Note
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
   }
 
   function updateClosureForm<K extends keyof typeof closureForm>(key: K, value: (typeof closureForm)[K]) {
@@ -703,6 +787,59 @@ export default function CaseDetailPage() {
                       </div>
                     );
                   })}
+                </div>
+              </section>
+
+              <section className="workspace-panel cockpit-panel cockpit-assist">
+                <div className="workspace-title-row">
+                  <div className="workspace-title-block">
+                    <h3 className="workspace-section-title">Aegis Assist</h3>
+                    <p className="workspace-subtle">Drafts and explanations only. Review before use.</p>
+                  </div>
+                </div>
+
+                {assistError ? <div className="assist-error">{assistError}</div> : null}
+
+                <div className="assist-action-grid">
+                  <button
+                    type="button"
+                    className="workstation-action-button workstation-action-button-secondary"
+                    onClick={() => void runAssistDraft("caseSummary")}
+                    disabled={assistLoading !== null || !canGenerateCaseSummary}
+                  >
+                    <span>{assistLoading === "caseSummary" ? "Generating..." : "Generate Case Summary Draft"}</span>
+                    <small>Summarize case context, risk drivers, owner, and next step.</small>
+                  </button>
+                  <button
+                    type="button"
+                    className="workstation-action-button workstation-action-button-secondary"
+                    onClick={() => void runAssistDraft("operatorNote")}
+                    disabled={assistLoading !== null || !canUpdateCase}
+                  >
+                    <span>{assistLoading === "operatorNote" ? "Drafting..." : "Draft Operator Note"}</span>
+                    <small>Create a documentation-ready note for human review.</small>
+                  </button>
+                  <button
+                    type="button"
+                    className="workstation-action-button workstation-action-button-secondary"
+                    onClick={() => void runAssistDraft("playbookExplanation")}
+                    disabled={assistLoading !== null || !canUpdateCase}
+                  >
+                    <span>{assistLoading === "playbookExplanation" ? "Explaining..." : "Explain Recommended Step"}</span>
+                    <small>Ground the next playbook step in signals and case state.</small>
+                  </button>
+                </div>
+
+                {!canUpdateCase ? (
+                  <div className="assist-disclaimer">
+                    This role can review case context but cannot generate operator-note or playbook-workflow drafts.
+                  </div>
+                ) : null}
+
+                <div className="assist-draft-stack">
+                  {renderAssistDraft("caseSummary", "Case summary draft")}
+                  {renderAssistDraft("operatorNote", "Operator note draft")}
+                  {renderAssistDraft("playbookExplanation", "Recommended step explanation")}
                 </div>
               </section>
 

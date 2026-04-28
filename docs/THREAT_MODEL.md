@@ -1,6 +1,6 @@
 # Aegis Threat Model
 
-This document captures the Phase 3 security foundation for Aegis Member Protection. The current implementation includes local/demo authentication and RBAC enforcement, while intentionally deferring enterprise SSO and tenant complexity.
+This document captures the Phase 3 security foundation and Phase 4A assistive AI scope for Aegis Member Protection. The current implementation includes local/demo authentication, RBAC enforcement, and draft-only case assistance, while intentionally deferring enterprise SSO and tenant complexity.
 
 ## Assets
 
@@ -9,6 +9,7 @@ This document captures the Phase 3 security foundation for Aegis Member Protecti
 - Structured risk signals and case intelligence
 - Action history and closure/outcome records
 - Reporting metrics and operational summaries
+- AI-generated drafts and explanations that operators may copy into notes after review
 - Demo/admin utilities that can reset or seed case data
 - Database credentials and deployment environment variables
 
@@ -43,6 +44,8 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - Weak environment separation causing frontend containers to call the wrong backend URL
 - Audit gaps for state-changing or destructive operations
 - Lack of centralized audit visibility for destructive admin operations
+- Overreliance on assistive AI output or accidental treatment of drafts as final decisions
+- Excessive case data disclosure to a future external AI provider
 - Local `.env` or database files accidentally committed
 
 ## Current Controls
@@ -75,11 +78,15 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - Frontend route protection and role-aware action visibility.
 - Shared RBAC constants/helpers in backend and frontend.
 - Admin-only `GET /api/audit/system` endpoint for recent system audit log visibility.
+- Aegis Assist endpoints are authenticated, RBAC-protected, CSRF-protected `POST` endpoints.
+- Aegis Assist runs in deterministic mock mode by default and does not require `AI_API_KEY`.
+- Assist output is labeled as draft-only and does not mutate status, risk, owner, closure, or outcomes.
+- Assist generation logs actor, role, assist type, and case id without storing generated draft text.
 - Docker environment separation:
   - browser-facing `NEXT_PUBLIC_API_BASE_URL`
   - container/server-facing `INTERNAL_API_BASE_URL`
 - `.env` files and local database files ignored by git.
-- Backend tests covering auth success/failure, current user, protected endpoint access, CSRF enforcement, role restrictions, case creation, demo seeding, validation, security headers, rate limiter behavior, audit visibility, and RBAC helpers.
+- Backend tests covering auth success/failure, current user, protected endpoint access, CSRF enforcement, role restrictions, case creation, demo seeding, validation, security headers, rate limiter behavior, audit visibility, assist endpoint access, and RBAC helpers.
 
 ## Assumptions
 
@@ -89,6 +96,8 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - Docker Compose is for local development, not production hosting.
 - The in-memory rate limiter is a foundation control only; it is not distributed across multiple backend instances.
 - CSRF protection is practical for local/demo cookie auth; production deployment should review domain, TLS, proxy, and same-site behavior.
+- Aegis Assist is assistive only. Human operators remain accountable for notes, interventions, closures, and management decisions.
+- Future real AI provider use must pass privacy, data minimization, retention, logging, and vendor review before any non-mock deployment.
 - Demo/reset utilities remain available because they are useful for founder demos and local evaluation.
 
 ## Planned Controls
@@ -102,6 +111,7 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - Secrets management for deployed environments.
 - TLS termination and production CORS allowlist.
 - Production CSRF review under HTTPS, real domains, and deployed proxy headers.
+- Reviewed AI provider integration with prompt/data governance, redaction policy, retention controls, and monitoring.
 - More complete dependency scanning and container scanning in CI.
 
 ## Future Security Test Cases
