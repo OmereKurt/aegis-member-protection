@@ -56,6 +56,11 @@ export default function LoginPage() {
           <p className="page-subtitle">
             Use a local demo account to access Operations, Intake, Reporting, and case workspaces.
           </p>
+          <div className="login-security-strip">
+            <span>HttpOnly session</span>
+            <span>Role-based access</span>
+            <span>CSRF-protected actions</span>
+          </div>
 
           {error ? <div className="ops-inline-banner">{error}</div> : null}
 

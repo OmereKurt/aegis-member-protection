@@ -556,6 +556,11 @@ export default function CaseDetailPage() {
         <div>
           <div className="page-kicker">Case workspace</div>
           <h1 className="page-title">{caseData?.title || "Member protection case"}</h1>
+          {caseData ? (
+            <p className="page-subtitle">
+              {caseData.case_id} · {caseData.full_name || caseData.customer_identifier} · {caseData.source_unit}
+            </p>
+          ) : null}
         </div>
         <div className="button-row full-case-header-actions">
           <Link href="/ops" className="button button-secondary">

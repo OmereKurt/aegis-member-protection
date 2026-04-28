@@ -6,8 +6,9 @@ import { listCases, type BackendCase } from "./lib/cases";
 
 const workflowSteps = [
   "Intake",
-  "Intelligence",
-  "Guided Intervention",
+  "Triage",
+  "Investigation",
+  "Intervention",
   "Closure",
   "Reporting",
 ];
@@ -126,7 +127,7 @@ export default function HomePage() {
       <section className="home-console-hero console-panel">
         <div className="home-hero-main">
           <div className="page-kicker">Aegis Member Protection</div>
-          <h1>A workflow system for suspected elder financial exploitation cases.</h1>
+          <h1>Enterprise case operations for suspected elder financial exploitation.</h1>
           <p>
             Aegis helps credit unions and regional banks intake concerns, assess
             risk, guide interventions, document actions, close outcomes, and
@@ -164,6 +165,7 @@ export default function HomePage() {
             </div>
           ) : (
             <div className="home-snapshot-grid">
+              <Metric label="Total cases" value={isLoading ? "..." : snapshot.totalCases} />
               <Metric label="Open cases" value={isLoading ? "..." : snapshot.openCases} />
               <Metric label="Elevated risk" value={isLoading ? "..." : snapshot.elevatedRiskCases} />
               <Metric label="Playbook progress" value={isLoading ? "..." : `${snapshot.playbookProgress}%`} />

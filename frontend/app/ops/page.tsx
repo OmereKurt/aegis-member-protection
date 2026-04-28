@@ -441,6 +441,7 @@ export default function OperationsPage() {
                       <tr
                         key={item.id}
                         className={item.id === selectedCase?.id ? "is-selected" : ""}
+                        aria-selected={item.id === selectedCase?.id}
                         onClick={() => {
                           setSelectedCaseId(item.id);
                           setActionFeedback("");
