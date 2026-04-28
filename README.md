@@ -222,6 +222,18 @@ AUTH_DEMO_USERS_ENABLED=true
 SESSION_COOKIE_SECURE=false
 ```
 
+Aegis Assist environment variables:
+
+```text
+AI_ASSIST_ENABLED=true
+AI_PROVIDER=mock
+AI_API_KEY=
+AI_MODEL=aegis-mock-assist
+AI_REQUEST_TIMEOUT_SECONDS=15
+```
+
+Mock mode is deterministic and works without an external API key. Assist outputs are draft-only and never close, escalate, assign, update risk, or submit outcomes automatically.
+
 Local demo users:
 
 | Role | Email | Password |

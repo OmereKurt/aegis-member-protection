@@ -30,6 +30,11 @@ Backend:
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Session lifetime in minutes | `480` |
 | `AUTH_DEMO_USERS_ENABLED` | Seeds deterministic local demo users on startup | `true` |
 | `SESSION_COOKIE_SECURE` | Sets the cookie `Secure` flag for HTTPS deployments | `false` locally |
+| `AI_ASSIST_ENABLED` | Enables case-level Aegis Assist draft endpoints | `true` |
+| `AI_PROVIDER` | Assist provider selector; `mock` is the safe local/demo mode | `mock` |
+| `AI_API_KEY` | Optional provider key for future reviewed provider integrations | Empty in mock mode |
+| `AI_MODEL` | Assist model identifier for future provider integrations | `aegis-mock-assist` |
+| `AI_REQUEST_TIMEOUT_SECONDS` | Provider request timeout for future real integrations | `15` |
 | `ENVIRONMENT` | Environment label for local/CI/Docker clarity | Optional |
 
 Frontend:
@@ -87,6 +92,14 @@ Admin audit visibility:
 - `GET /api/audit/system`
 - Admin-only
 - Returns recent system audit log entries for seed/reset/delete activity and actor attribution.
+
+Aegis Assist:
+
+- `POST /api/assist/case-summary`
+- `POST /api/assist/operator-note`
+- `POST /api/assist/playbook-explanation`
+
+Assist endpoints require authentication, RBAC, and CSRF tokens because they are unsafe `POST` requests. Mock mode is deterministic and does not need `AI_API_KEY`. Assist outputs are drafts only; they do not change status, risk, owner, closure, or outcomes automatically.
 
 ## Manual Local Development
 
