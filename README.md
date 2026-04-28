@@ -1,148 +1,108 @@
 # Aegis Member Protection
 
-Aegis Member Protection is a case operations platform for suspected elder exploitation workflows at credit unions.
+Aegis Member Protection is an enterprise-style case operations platform for suspected elder financial exploitation workflows at credit unions and regional banks. It helps teams intake concerns, triage cases, investigate member context, document interventions, close outcomes, and report management visibility from one backend-backed workflow.
 
-It gives teams a structured way to intake concerns, triage risk, escalate cases, document actions, and review outcomes across branch, contact center, and fraud operations.
+The project is built as a realistic full-stack security and product engineering portfolio project, with production-minded architecture, role-based access control, audit logging, Dockerized local development, and assistive AI draft generation.
 
-## Product Preview
+![Aegis Home Overview](docs/screenshots/01-home-overview.png)
 
-![Aegis Homepage](docs/screenshots/homepage.png)
+## Key Capabilities
 
-## Demo
+| Area | What Aegis Supports |
+| --- | --- |
+| Structured frontline intake | Branch and contact center staff can capture member context, risk signals, transaction exposure, and narrative details. |
+| Operations queue | Fraud/member protection operators can scan, filter, select, assign, and open cases from a triage-oriented queue. |
+| Full case workspace | Each case has a dedicated investigation surface with context, risk signals, notes, history, playbook, actions, and closure workflow. |
+| Guided intervention playbook | Operators can complete or skip structured intervention steps and preserve the activity trail. |
+| Closure/outcome tracking | Cases close with structured outcomes, follow-up flags, trusted contact/fraud ops involvement, and protected/lost amounts. |
+| Reporting 2.0 | Managers can review workload, source units, patterns, risk mix, outcomes, intervention progress, and generated management briefs. |
+| Aegis Assist | Draft-only case summaries, operator notes, playbook explanations, and management briefs are generated from live case data. |
+| Auth/RBAC/security controls | Cookie-based auth, role enforcement, CSRF protection, security headers, rate limiting, validation, and audit logging are implemented. |
+| Audit logging | Meaningful state-changing activity is captured for operator and admin visibility. |
 
-![Aegis Demo](docs/demo/aegis-demo.gif)
+## Product Walkthrough
 
----
+### Home Overview
 
-## Why Aegis Exists
+The Home page presents Aegis as a member protection operations system and gives reviewers a clear path into intake, operations, and reporting.
 
-Suspected elder exploitation cases often begin in fragmented channels:
+![Home Overview](docs/screenshots/01-home-overview.png)
 
-- a teller notices unusual behavior in a branch
-- a contact center agent hears pressure or coaching language on a call
-- digital activity changes after contact or device updates
-- fraud or risk teams receive partial context too late
+### Login / Pilot Portal
 
-Most institutions do not have a dedicated workflow for these cases.  
-They rely on email, spreadsheets, scattered notes, or generic case tools that were not designed for this operational problem.
+The login and pilot entry experience supports deterministic demo users across branch, fraud analyst, manager, and admin roles.
 
-Aegis is built to provide a clearer operating model from first concern to final resolution.
-
----
-
-## What the Product Does
-
-Aegis helps teams:
-
-- capture concerns through structured intake
-- route cases into a centralized operations workspace
-- review urgency, ownership, and next steps
-- document case activity and recommended actions
-- monitor source-unit distribution and workflow outcomes through reporting
-
-The goal is not just case storage.  
-The goal is a more consistent and usable workflow for member protection operations.
-
----
-
-## Core Product Areas
-
-### Operations Workspace
-
-A queue-driven operator workspace for reviewing active cases, updating status, escalating, assigning ownership, and tracking recent activity.
-
-### Focused Case View
-
-A selected-case panel that shows case summary, recommendations, next steps, and timeline context in one place.
+![Login / Pilot Portal](docs/screenshots/02-login-pilot.png)
 
 ### Structured Intake
 
-A guided intake flow for capturing member context, suspicious activity, observed behavior, and risk indicators in a consistent format.
+The intake workflow helps frontline staff capture suspected exploitation concerns, member context, observed behavior, risk indicators, and transaction exposure.
 
-### Reporting
+![Structured Intake](docs/screenshots/03-intake-workflow.png)
 
-A management reporting layer for reviewing case volume, source-unit distribution, workflow progression, and operational outcomes.
+### Operations Queue
 
----
+The operations queue gives investigators a table-first triage surface with selected-case preview, filtering, backend unavailable handling, and admin-only demo utilities.
 
-## Who It Is For
+![Operations Queue](docs/screenshots/04-operations-queue.png)
 
-Aegis is designed for financial institutions that need stronger operational workflows around suspected elder exploitation and related member protection concerns.
+### Full Case Workspace
 
-Primary users include:
+The case workspace centralizes risk/context, deterministic case intelligence, guided intervention steps, action history, closure/outcome tracking, and Aegis Assist drafts.
 
-- branch operations
-- contact center teams
-- fraud operations
-- member protection teams
-- supervisors and operational leaders
+![Case Workspace](docs/screenshots/05-case-workspace.png)
 
----
+### Reporting Dashboard
 
-## Product Direction
+Reporting 2.0 provides a management console for workload posture, source/pattern analysis, outcomes, intervention progress, follow-up needs, and Aegis Assist management brief generation.
 
-This is an early-stage startup product focused on workflow clarity, operator usability, and case management structure.
+![Reporting Dashboard](docs/screenshots/06-reporting-dashboard.png)
 
-The product is being shaped around a simple idea:
+## Demo Users
 
-> high-risk member protection cases need a dedicated workflow, not a patchwork of generic tools
+| Role | Email | Password |
+| --- | --- | --- |
+| Branch user | branch@aegis.local | AegisBranch123! |
+| Fraud analyst | fraud@aegis.local | AegisFraud123! |
+| Manager | manager@aegis.local | AegisManager123! |
+| Admin | admin@aegis.local | AegisAdmin123! |
 
-Current priorities are:
+## Suggested Demo Flow
 
-- improving operator speed and consistency
-- creating better visibility across source units
-- making reporting more useful for management review
-- refining the product into a polished, pitch-ready internal tool
+1. Sign in as branch user and submit an intake.
+2. Sign in as fraud analyst and review the operations queue.
+3. Open a case workspace and review risk/context/playbook/notes.
+4. Generate Aegis Assist drafts where available.
+5. Sign in as manager/admin and review Reporting 2.0 / management brief.
 
----
+## Architecture / Stack
 
-## Tech Stack
+| Layer | Implementation |
+| --- | --- |
+| Frontend | Next.js, React, TypeScript |
+| Backend | FastAPI, SQLAlchemy, Pydantic |
+| Persistence | SQLite fallback, Postgres support |
+| Deployment/local stack | Docker Compose |
+| Quality | GitHub Actions CI, backend tests |
+| Security | Auth, RBAC, CSRF, security headers, rate limiting, input validation, audit logging |
 
-### Frontend
+## Security and Enterprise Controls
 
-- Next.js
-- React
-- TypeScript
+Aegis includes a practical security foundation intended to demonstrate production-minded engineering without claiming production banking readiness:
 
-### Backend
+- Role-based access control for branch user, fraud analyst, manager, and admin workflows.
+- CSRF protection for unsafe authenticated requests.
+- Security headers, rate limiting, and input validation hardening.
+- Audit logging for meaningful case, admin, and assistive-generation activity.
+- Deterministic local/demo user seeding for review and testing.
+- Threat model documentation in [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
+- Draft-only Aegis Assist behavior.
 
-- FastAPI
-- Uvicorn
-- SQLAlchemy
-- Pydantic
+Aegis Assist does not automatically close cases, escalate cases, assign owners, update risk, change reporting calculations, or submit outcomes. Generated text is treated as a human-reviewed draft only.
 
----
+## Local Setup
 
-## Repository Structure
-
-```text
-aegis-member-protection/
-├── backend/        # FastAPI backend
-├── frontend/       # Next.js frontend
-├── docs/           # Supporting project docs
-├── legacy/         # Archived prototype files kept for reference
-├── .gitignore
-└── README.md
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-Make sure you have:
-
-- Python 3
-- Node.js
-- npm
-- Docker Desktop, if using Docker Compose
-
----
-
-## Run Everything With Docker Compose
-
-The production-engineering local stack includes the frontend, backend, and Postgres:
+### Run Everything With Docker Compose
 
 ```bash
 docker compose up --build
@@ -154,11 +114,7 @@ Then open:
 - Backend: `http://localhost:8000`
 - Backend docs: `http://localhost:8000/docs`
 
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for environment variables, SQLite/Postgres behavior, and troubleshooting.
-
----
-
-## Run the Backend
+### Manual Backend
 
 ```bash
 cd backend
@@ -169,11 +125,7 @@ python -m pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Backend docs should be available at: `http://localhost:8000/docs`
-
----
-
-## Run the Frontend
+### Manual Frontend
 
 Open a second terminal:
 
@@ -183,46 +135,30 @@ npm install
 npm run dev
 ```
 
-Frontend should be available at: `http://localhost:3000`
+Frontend should be available at `http://localhost:3000`.
 
-If you run the backend on a different port, set `NEXT_PUBLIC_API_BASE_URL` and `INTERNAL_API_BASE_URL` in `frontend/.env.local`.
+## Environment Notes
 
----
-
-## Environment and Persistence
-
-The backend uses SQLite by default when `DATABASE_URL` is not set:
+The backend uses SQLite by default when `DATABASE_URL` is not set.
 
 ```text
 sqlite:///./startup_scam_ops.db
 ```
 
-Set `DATABASE_URL` to use Postgres, for example:
+Set `DATABASE_URL` to use Postgres:
 
 ```text
 postgresql+psycopg://aegis:aegis_password@db:5432/aegis
 ```
 
-Environment examples are provided in:
-
-- `.env.example`
-- `backend/.env.example`
-- `frontend/.env.example`
-
-Do not commit real local `.env` files.
-
-Auth/session environment variables:
+For Docker Compose, the frontend uses separate browser-facing and container/server-side API URLs:
 
 ```text
-JWT_SECRET=replace-with-a-long-random-local-secret
-SESSION_COOKIE_NAME=aegis_session
-CSRF_COOKIE_NAME=aegis_csrf
-ACCESS_TOKEN_EXPIRE_MINUTES=480
-AUTH_DEMO_USERS_ENABLED=true
-SESSION_COOKIE_SECURE=false
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+INTERNAL_API_BASE_URL=http://backend:8000
 ```
 
-Aegis Assist environment variables:
+Aegis Assist defaults to deterministic mock mode and works without an external AI API key:
 
 ```text
 AI_ASSIST_ENABLED=true
@@ -232,31 +168,15 @@ AI_MODEL=aegis-mock-assist
 AI_REQUEST_TIMEOUT_SECONDS=15
 ```
 
-Mock mode is deterministic and works without an external API key. Assist outputs are draft-only and never close, escalate, assign, update risk, change reporting calculations, or submit outcomes automatically. Reporting includes an Aegis Assist management brief draft generated from live case/reporting data for roles with reporting access.
+Environment examples are provided in:
 
-Local demo users:
+- `.env.example`
+- `backend/.env.example`
+- `frontend/.env.example`
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Branch user | `branch@aegis.local` | `AegisBranch123!` |
-| Fraud analyst | `fraud@aegis.local` | `AegisFraud123!` |
-| Manager | `manager@aegis.local` | `AegisManager123!` |
-| Admin | `admin@aegis.local` | `AegisAdmin123!` |
+Do not commit real local `.env` files or production secrets.
 
-Unsafe authenticated API requests use CSRF protection. The frontend fetch helper calls `GET /api/auth/csrf` and sends `X-CSRF-Token` automatically.
-
-For Docker Compose, the frontend uses separate backend URLs:
-
-```text
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-INTERNAL_API_BASE_URL=http://backend:8000
-```
-
-The first URL is for the browser on your host machine. The second URL is for the frontend container and Next.js server-side rewrites.
-
----
-
-## Checks
+## Verification Commands
 
 Frontend:
 
@@ -269,99 +189,32 @@ npm run build
 Backend:
 
 ```bash
-cd backend
+backend/venv/bin/python -m pytest backend/tests
+```
+
+If you are already inside the `backend` directory with the virtual environment active:
+
+```bash
 pytest
 ```
 
----
+## Repository Structure
 
-## Example Workflow
+```text
+aegis-member-protection/
+├── backend/              # FastAPI backend, models, schemas, routes, services, tests
+├── frontend/             # Next.js frontend application
+├── docs/                 # Deployment, threat model, demo notes, screenshots
+├── legacy/               # Archived prototype files kept for reference
+├── docker-compose.yml    # Frontend, backend, and Postgres local stack
+├── .github/workflows/    # CI checks
+└── README.md
+```
 
-A typical product flow looks like this:
+## Project Status
 
-1. A concern is entered through structured intake
-2. The case appears in the operations workspace
-3. An operator reviews urgency, source unit, and ownership
-4. The case is escalated, assigned, documented, or reviewed
-5. Management can review outcomes and workflow patterns in reporting
+Aegis is a polished portfolio/startup prototype, not a production banking deployment. It is built to demonstrate product thinking, security engineering, workflow design, full-stack implementation, and enterprise UI polish around a realistic financial-services operations problem.
 
----
+## Author
 
-## What This Project Demonstrates
-
-This project demonstrates:
-
-- full-stack product development
-- internal-tool UX for operational teams
-- workflow design for case handling
-- structured intake and triage patterns
-- management visibility through reporting
-- product thinking around a real financial-services workflow problem
-
----
-
-## Current Status
-
-Aegis is currently an early product prototype focused on:
-
-- workflow structure
-- usability
-- polish
-- realistic internal-tool design
-- startup presentation readiness
-
-It is not positioned as a finished production platform yet.  
-The current version is intended to demonstrate the product direction clearly and credibly.
-
----
-
-## Future Enhancements
-
-Planned improvements include:
-
-- authentication and role-based access control
-- configurable escalation logic
-- richer notes, attachments, and collaboration history
-- integrations with internal fraud, CRM, or case systems
-- exportable reporting and audit history
-- improved analytics and operational alerts
-- production deployment hardening
-
----
-
-## Screenshots
-
-### Operations Workspace
-Review active cases, assess urgency, escalate, assign ownership, and document next steps from one operator workspace.
-
-![Operations Workspace](docs/screenshots/operations.png)
-
-### Reporting
-Track case volume, source-unit distribution, workflow progression, and operational outcomes in one management view.
-
-![Reporting View](docs/screenshots/reporting.png)
-
-### New Intake
-Capture suspected exploitation concerns through a structured intake workflow with live triage guidance.
-
-![New Intake](docs/screenshots/intake.png)
-
----
-
-## Startup Framing
-
-Aegis is being developed as a startup-style product, not just a technical demo.
-
-The focus is on building a workflow system that feels:
-
-- credible
-- operational
-- polished
-- easy to explain
-- ready for customer conversations and early pilots
-
----
-
-## Authors
-
-Built by Omer Kurt
+Built by Omer Kurt.
