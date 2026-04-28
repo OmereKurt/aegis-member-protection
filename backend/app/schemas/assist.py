@@ -3,7 +3,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
-AssistType = Literal["case_summary", "operator_note", "playbook_explanation"]
+AssistType = Literal["case_summary", "operator_note", "playbook_explanation", "management_brief"]
 
 
 class AssistRequest(BaseModel):

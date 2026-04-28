@@ -232,7 +232,7 @@ AI_MODEL=aegis-mock-assist
 AI_REQUEST_TIMEOUT_SECONDS=15
 ```
 
-Mock mode is deterministic and works without an external API key. Assist outputs are draft-only and never close, escalate, assign, update risk, or submit outcomes automatically.
+Mock mode is deterministic and works without an external API key. Assist outputs are draft-only and never close, escalate, assign, update risk, change reporting calculations, or submit outcomes automatically. Reporting includes an Aegis Assist management brief draft generated from live case/reporting data for roles with reporting access.
 
 Local demo users:
 

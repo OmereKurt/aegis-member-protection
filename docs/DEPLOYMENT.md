@@ -98,8 +98,9 @@ Aegis Assist:
 - `POST /api/assist/case-summary`
 - `POST /api/assist/operator-note`
 - `POST /api/assist/playbook-explanation`
+- `POST /api/assist/management-brief`
 
-Assist endpoints require authentication, RBAC, and CSRF tokens because they are unsafe `POST` requests. Mock mode is deterministic and does not need `AI_API_KEY`. Assist outputs are drafts only; they do not change status, risk, owner, closure, or outcomes automatically.
+Assist endpoints require authentication, RBAC, and CSRF tokens because they are unsafe `POST` requests. Mock mode is deterministic and does not need `AI_API_KEY`. Assist outputs are drafts only; they do not change status, risk, owner, reporting calculations, closure, or outcomes automatically.
 
 ## Manual Local Development
 
