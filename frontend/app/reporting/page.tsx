@@ -286,9 +286,7 @@ export default function ReportingPage() {
         <div>
           <div className="page-kicker">Management reporting</div>
           <h1 className="page-title">Management reporting</h1>
-          <p className="page-subtitle">
-            Live management view of case volume, risk concentration, playbook progress, and intervention outcomes.
-          </p>
+          <p className="page-subtitle">Live workload, risk, outcomes, and intervention progress.</p>
         </div>
 
         <div className="reporting-console-actions">
@@ -320,7 +318,7 @@ export default function ReportingPage() {
             <div>
               <div className="page-kicker">Aegis Assist</div>
               <h2>Management brief draft</h2>
-              <p>Generate a concise draft from live reporting data. Review before use.</p>
+              <p>Draft from live reporting data. Review before use.</p>
             </div>
             <button
               type="button"
@@ -362,8 +360,8 @@ export default function ReportingPage() {
           <h2>{analytics.highCriticalCases ? `${analytics.highCriticalCases} elevated-risk cases need attention` : "No elevated-risk cases currently need attention"}</h2>
           <p>
             {analytics.topSource
-              ? `${analytics.topSource.label} is the leading source, and ${analytics.topPattern?.label || "unknown patterns"} are most common.`
-              : "Reporting will summarize source, pattern, workflow, and outcome trends as live cases accumulate."}
+              ? `${analytics.topSource.label} leads volume · ${analytics.topPattern?.label || "unknown patterns"} is most common.`
+              : "Live trends appear as cases accumulate."}
           </p>
           <div className="briefing-metric-strip">
             <MetricPill label="Open" value={analytics.openCases} />
@@ -385,9 +383,9 @@ export default function ReportingPage() {
       <section className="report-dashboard-primary">
         <section className="report-section dashboard-module">
           <SectionHeader
-            eyebrow="Operational attention"
-            title="Where the workflow needs management focus"
-            description="Open cases, escalations, and playbook gaps that can slow intervention."
+            eyebrow="Attention"
+            title="Workload focus"
+            description="Open cases and intervention gaps."
           />
           <div className="attention-grid attention-table">
             <AttentionCard label="Open cases" value={analytics.openCases} detail={`${analytics.escalatedCases} escalated`} />
@@ -399,9 +397,9 @@ export default function ReportingPage() {
 
         <section className="report-section dashboard-module">
           <SectionHeader
-            eyebrow="Outcome performance"
-            title="What outcomes are being achieved"
-            description="Closure results, protected/lost estimates, and quality signals from structured outcomes."
+            eyebrow="Outcomes"
+            title="Outcome performance"
+            description="Closure results and impact."
           />
           <div className="outcome-console-panel analytics-tile">
             <div className="compact-metric-strip outcome-metric-strip">
@@ -414,7 +412,7 @@ export default function ReportingPage() {
             <div className="outcome-console-grid">
               <CompositionCard
                 title="Outcome mix"
-                description={analytics.protectedAmount >= analytics.lostAmount ? "Protected amount exceeds recorded loss." : "Recorded loss exceeds protected amount."}
+                description={analytics.protectedAmount >= analytics.lostAmount ? "Protected exceeds loss." : "Loss exceeds protected."}
                 rows={analytics.outcomeRows}
                 emptyText="No closure outcomes available yet."
               />
@@ -433,16 +431,16 @@ export default function ReportingPage() {
       <section className="report-section">
         <SectionHeader
           eyebrow="Patterns and source analysis"
-          title="Where cases are coming from and what they look like"
-          description="Source concentration, likely exploitation pattern, and high-risk distribution."
+          title="Pattern and source"
+          description="Volume concentration and risk mix."
         />
         <div className="analytics-console-grid dashboard-module-grid">
           <div className="analytics-wide-panel">
-            <BarCard title="Likely exploitation patterns" description="Pattern classification from case intelligence." rows={analytics.patternRows} />
+            <BarCard title="Likely patterns" description="Case intelligence classification." rows={analytics.patternRows} />
           </div>
           <CompositionCard
             title="Source mix"
-            description="Entry points for suspected exploitation cases."
+            description="Entry points."
             rows={analytics.sourceRows}
             emptyText="No source data available yet."
           />
@@ -450,13 +448,13 @@ export default function ReportingPage() {
         <div className="analytics-console-grid drilldown-pair">
           <CompositionCard
             title="Risk mix"
-            description="Current urgency composition across all cases."
+            description="Urgency composition."
             rows={analytics.riskRows}
             emptyText="No risk data available yet."
           />
           <BarCard
             title="High/Critical concentration by source"
-            description="Where elevated-risk cases are concentrated."
+            description="Elevated-risk sources."
             rows={analytics.sourceRiskRows}
             emptyText="No high or critical cases currently need attention."
           />
@@ -465,14 +463,13 @@ export default function ReportingPage() {
 
       <section className="report-section">
         <SectionHeader
-          eyebrow="Playbook effectiveness"
-          title="Whether intervention work is being documented"
-          description="Guided playbook completion, skipped steps, and missing intervention signals."
+          eyebrow="Intervention"
+          title="Playbook progress"
+          description="Documentation and workflow gaps."
         />
         <div className="reporting-grid">
           <div className="progress-card">
             <h3>Workflow progress</h3>
-            <p>Operational progress based on action history and playbook logs.</p>
             <div className="reporting-list">
               <InsightRow label="Any completed playbook step" value={`${analytics.playbookProgress}%`} />
               <InsightRow label="Open without intervention result" value={analytics.openWithoutResult} />
@@ -482,7 +479,7 @@ export default function ReportingPage() {
           </div>
           <BarCard
             title="Most completed steps"
-            description="Which guided interventions operators record most often."
+            description="Recorded interventions."
             rows={analytics.completedStepRows}
             emptyText="No completed playbook steps yet."
           />
@@ -491,20 +488,20 @@ export default function ReportingPage() {
 
       <section className="report-section report-drilldowns">
         <SectionHeader
-          eyebrow="Supporting drilldowns"
-          title="Lower-priority detail"
-          description="Reference views for outcome mix, skipped playbook steps, and recent closure records."
+          eyebrow="Drilldowns"
+          title="Supporting detail"
+          description="Skipped steps and closure records."
         />
         <div className="chart-grid">
           <BarCard
             title="Skipped playbook steps"
-            description="Steps operators skipped during guided intervention."
+            description="Skipped workflow steps."
             rows={analytics.skippedStepRows}
             emptyText="No skipped playbook steps yet."
           />
           <BarCard
             title="Outcome mix"
-            description="Structured closure outcomes recorded by operators."
+            description="Closure outcome counts."
             rows={analytics.outcomeRows}
             emptyText="No closure outcomes available yet."
           />
