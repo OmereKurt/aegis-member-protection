@@ -24,8 +24,23 @@ export default function RootLayout({
               <div className="topbar-inner">
                 <Link href="/" className="brand">
                   <div className="brand-mark" aria-hidden="true">
-                    <span className="brand-mark-text">AM</span>
-                    <span className="brand-mark-accent">&gt;</span>
+                    <svg className="brand-shield" viewBox="0 0 44 44" focusable="false">
+                      <path
+                        d="M22 4.5 36 9.2v11.4c0 8.3-5.3 15.8-14 19-8.7-3.2-14-10.7-14-19V9.2L22 4.5Z"
+                        fill="currentColor"
+                      />
+                      <text
+                        x="22"
+                        y="27"
+                        textAnchor="middle"
+                        fill="#0f172a"
+                        fontSize="12"
+                        fontWeight="900"
+                        letterSpacing="0"
+                      >
+                        AM
+                      </text>
+                    </svg>
                   </div>
 
                   <div className="brand-text">
@@ -45,7 +60,7 @@ export default function RootLayout({
               </div>
             </header>
 
-            {children}
+            <div className="app-body">{children}</div>
           </div>
         </AuthProvider>
       </body>

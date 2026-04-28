@@ -7,10 +7,10 @@ import type { AegisPermission } from "./lib/rbac";
 
 const navItems = [
   { href: "/", label: "Home", match: "exact" },
+  { href: "/cases/new", label: "Intake", match: "new-intake", permission: "create_intake" },
   { href: "/ops", label: "Operations", match: "ops", permission: "view_cases" },
   { href: "/reporting", label: "Reporting", match: "reporting", permission: "view_reporting" },
   { href: "/pilot", label: "Pilot", match: "pilot" },
-  { href: "/cases/new", label: "Intake", match: "new-intake", permission: "create_intake" },
 ] satisfies {
   href: string;
   label: string;
@@ -45,7 +45,7 @@ export default function AppNav() {
         ))}
       {auth.user ? (
         <>
-          <span className="nav-user-pill">{auth.user.role.replace(/_/g, " ")}</span>
+          <span className="nav-user-pill" title={auth.user.email}>{auth.user.role.replace(/_/g, " ")}</span>
           <button
             type="button"
             className="nav-logout-button"
