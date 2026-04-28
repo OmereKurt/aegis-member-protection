@@ -9,7 +9,7 @@ This document captures the Phase 3 security foundation and Phase 4A assistive AI
 - Structured risk signals and case intelligence
 - Action history and closure/outcome records
 - Reporting metrics and operational summaries
-- AI-generated drafts and explanations that operators may copy into notes after review
+- AI-generated drafts and explanations that operators or managers may copy after review
 - Demo/admin utilities that can reset or seed case data
 - Database credentials and deployment environment variables
 
@@ -46,6 +46,7 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - Lack of centralized audit visibility for destructive admin operations
 - Overreliance on assistive AI output or accidental treatment of drafts as final decisions
 - Excessive case data disclosure to a future external AI provider
+- Misinterpretation of management brief drafts as audited reporting conclusions
 - Local `.env` or database files accidentally committed
 
 ## Current Controls
@@ -80,8 +81,9 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - Admin-only `GET /api/audit/system` endpoint for recent system audit log visibility.
 - Aegis Assist endpoints are authenticated, RBAC-protected, CSRF-protected `POST` endpoints.
 - Aegis Assist runs in deterministic mock mode by default and does not require `AI_API_KEY`.
-- Assist output is labeled as draft-only and does not mutate status, risk, owner, closure, or outcomes.
-- Assist generation logs actor, role, assist type, and case id without storing generated draft text.
+- Assist output is labeled as draft-only and does not mutate status, risk, owner, reporting calculations, closure, or outcomes.
+- Case-level Assist generation logs actor, role, assist type, and case id without storing generated draft text.
+- Management brief generation is restricted to roles with reporting access and logs only actor, role, assist type, and reporting context size.
 - Docker environment separation:
   - browser-facing `NEXT_PUBLIC_API_BASE_URL`
   - container/server-facing `INTERNAL_API_BASE_URL`
@@ -97,6 +99,7 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - The in-memory rate limiter is a foundation control only; it is not distributed across multiple backend instances.
 - CSRF protection is practical for local/demo cookie auth; production deployment should review domain, TLS, proxy, and same-site behavior.
 - Aegis Assist is assistive only. Human operators remain accountable for notes, interventions, closures, and management decisions.
+- Management brief drafts summarize live reporting data, but managers remain accountable for interpretation and follow-up.
 - Future real AI provider use must pass privacy, data minimization, retention, logging, and vendor review before any non-mock deployment.
 - Demo/reset utilities remain available because they are useful for founder demos and local evaluation.
 

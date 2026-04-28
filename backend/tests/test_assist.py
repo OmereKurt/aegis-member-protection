@@ -136,3 +136,65 @@ def test_assist_generation_does_not_mutate_case_state():
     assert after == before
     assert current["action_logs"][0]["action_type"] == "assist_draft_generated"
     assert current["action_logs"][0]["actor_email"] == "fraud@aegis.local"
+
+
+def test_unauthenticated_user_cannot_generate_management_brief():
+    client.cookies.clear()
+
+    response = client.post("/api/assist/management-brief", json={})
+
+    assert response.status_code == 401
+
+
+def test_branch_user_cannot_generate_management_brief():
+    create_assist_case()
+    login_as("branch@aegis.local")
+
+    response = client.post("/api/assist/management-brief", json={}, headers=csrf_headers())
+
+    assert response.status_code == 403
+
+
+def test_manager_can_generate_mock_management_brief_without_api_key():
+    create_assist_case()
+    login_as("manager@aegis.local")
+
+    response = client.post("/api/assist/management-brief", json={}, headers=csrf_headers())
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["assist_type"] == "management_brief"
+    assert payload["provider"] == "mock"
+    assert "Management Brief" in payload["draft"]
+    assert "AI-generated draft" in payload["disclaimer"]
+
+
+def test_admin_can_generate_management_brief():
+    create_assist_case()
+    login_as("admin@aegis.local")
+
+    response = client.post("/api/assist/management-brief", json={}, headers=csrf_headers())
+
+    assert response.status_code == 200
+    assert response.json()["assist_type"] == "management_brief"
+
+
+def test_management_brief_requires_csrf_for_authenticated_request():
+    create_assist_case()
+    login_as("manager@aegis.local")
+
+    response = client.post("/api/assist/management-brief", json={})
+
+    assert response.status_code == 403
+
+
+def test_management_brief_does_not_mutate_cases():
+    create_assist_case()
+    login_as("manager@aegis.local")
+    before = client.get("/api/scam-cases/").json()
+
+    response = client.post("/api/assist/management-brief", json={}, headers=csrf_headers())
+    assert response.status_code == 200
+
+    after = client.get("/api/scam-cases/").json()
+    assert after == before

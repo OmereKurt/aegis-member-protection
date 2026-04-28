@@ -1,6 +1,6 @@
 import { apiUrl, fetchJson } from "./api";
 
-export type AssistType = "case_summary" | "operator_note" | "playbook_explanation";
+export type AssistType = "case_summary" | "operator_note" | "playbook_explanation" | "management_brief";
 
 export type AssistResponse = {
   assist_type: AssistType;
@@ -34,5 +34,12 @@ export function generatePlaybookExplanation(caseId: number, recommendedStep?: st
   return postAssist("/api/assist/playbook-explanation", {
     case_id: caseId,
     recommended_step: recommendedStep,
+  });
+}
+
+export function generateManagementBriefDraft() {
+  return fetchJson<AssistResponse>(apiUrl("/api/assist/management-brief"), {
+    method: "POST",
+    body: JSON.stringify({}),
   });
 }

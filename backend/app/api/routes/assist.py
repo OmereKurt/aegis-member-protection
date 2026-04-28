@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.routes.scam_cases import serialize_case, write_action_log
+from app.api.routes.scam_cases import serialize_case, write_action_log, write_system_audit_log
 from app.core.auth import require_permission
 from app.core.database import SessionLocal
 from app.core.security import Permission, rate_limit
@@ -11,6 +11,7 @@ from app.schemas.assist import AssistRequest, AssistResponse
 from app.services.ai_assist import (
     ASSIST_DISCLAIMER,
     assist_source_fields,
+    build_management_brief_context,
     get_assist_provider,
     get_assist_settings,
 )
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/api/assist", tags=["assist"])
 ASSIST_RATE_LIMIT = Depends(rate_limit("assist", limit=60, window_seconds=60))
 VIEW_CASES = Depends(require_permission(Permission.view_cases))
 UPDATE_CASE = Depends(require_permission(Permission.update_case))
+VIEW_REPORTING = Depends(require_permission(Permission.view_reporting))
 
 
 def _load_case_context(db: Session, case_id: int) -> tuple[ScamCase, dict]:
@@ -54,6 +56,17 @@ def _log_assist_generation(db: Session, case_id: int, assist_type: str, actor: U
         "assist_draft_generated",
         f"Aegis Assist generated a {assist_type.replace('_', ' ')} draft for human review.",
         actor,
+    )
+
+
+def _log_management_brief_generation(db: Session, actor: User, case_count: int):
+    write_system_audit_log(
+        db,
+        "assist_management_brief_generated",
+        f"Aegis Assist generated a management brief draft from {case_count} live cases for human review.",
+        actor_email=actor.email,
+        actor_role=actor.role,
+        resource_type="reporting",
     )
 
 
@@ -113,5 +126,26 @@ def generate_playbook_explanation(
         draft = provider.playbook_explanation(context, payload.recommended_step)
         _log_assist_generation(db, case.id, "playbook_explanation", current_user)
         return _response("playbook_explanation", draft, provider.name)
+    finally:
+        db.close()
+
+
+@router.post(
+    "/management-brief",
+    response_model=AssistResponse,
+    summary="Generate Management Brief Draft",
+    dependencies=[ASSIST_RATE_LIMIT, VIEW_REPORTING],
+)
+def generate_management_brief(current_user: User = Depends(require_permission(Permission.view_reporting))):
+    db: Session = SessionLocal()
+    try:
+        settings = _ensure_enabled()
+        cases = db.query(ScamCase).all()
+        serialized_cases = [serialize_case(db, case) for case in cases]
+        context = build_management_brief_context(serialized_cases)
+        provider = get_assist_provider(settings)
+        draft = provider.management_brief(context)
+        _log_management_brief_generation(db, current_user, len(serialized_cases))
+        return _response("management_brief", draft, provider.name)
     finally:
         db.close()

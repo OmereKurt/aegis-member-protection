@@ -7395,3 +7395,48 @@ select:focus,
 .assist-draft-actions {
   margin-top: 0;
 }
+
+.reporting-assist-panel {
+  margin-bottom: 14px;
+  border-left: 2px solid var(--app-accent);
+}
+
+.reporting-assist-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.reporting-assist-header h2 {
+  margin: 2px 0 4px;
+  color: var(--app-ink);
+  font-size: 18px;
+}
+
+.reporting-assist-header p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--app-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.management-brief-draft {
+  margin-top: 12px;
+}
+
+.management-brief-draft pre {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--app-ink);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+@media (max-width: 760px) {
+  .reporting-assist-header {
+    display: grid;
+  }
+}

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "../AuthProvider";
+import { generateManagementBriefDraft, type AssistResponse } from "../lib/assist";
 import {
   listCases,
   outcomeLabel,
@@ -116,9 +118,13 @@ function compositionBackground(rows: { value: number }[]) {
 }
 
 export default function ReportingPage() {
+  const auth = useAuth();
   const [cases, setCases] = useState<BackendCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [briefDraft, setBriefDraft] = useState<AssistResponse | null>(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefError, setBriefError] = useState("");
 
   useEffect(() => {
     async function loadReportingCases() {
@@ -249,6 +255,30 @@ export default function ReportingPage() {
   }, [cases]);
 
   const emptyState = !isLoading && cases.length === 0;
+  const canGenerateManagementBrief = auth.can("view_reporting");
+
+  async function handleGenerateManagementBrief() {
+    try {
+      setBriefLoading(true);
+      setBriefError("");
+      const draft = await generateManagementBriefDraft();
+      setBriefDraft(draft);
+    } catch (error) {
+      setBriefError(error instanceof Error ? error.message : "Unable to generate management brief.");
+    } finally {
+      setBriefLoading(false);
+    }
+  }
+
+  async function handleCopyManagementBrief() {
+    if (!briefDraft) return;
+    try {
+      await navigator.clipboard.writeText(briefDraft.draft);
+      setBriefError("");
+    } catch {
+      setBriefError("Unable to copy draft from this browser.");
+    }
+  }
 
   return (
     <main className="page-wrap reporting-page-wrap reporting-v2-page workspace-shell">
@@ -282,6 +312,48 @@ export default function ReportingPage() {
         <div className="ops-inline-banner">
           Reporting will populate as intakes are submitted, playbook steps are logged, and outcomes are recorded.
         </div>
+      ) : null}
+
+      {canGenerateManagementBrief ? (
+        <section className="workspace-panel console-panel reporting-assist-panel">
+          <div className="reporting-assist-header">
+            <div>
+              <div className="page-kicker">Aegis Assist</div>
+              <h2>Management brief draft</h2>
+              <p>Generate a concise draft from live reporting data. Review before use.</p>
+            </div>
+            <button
+              type="button"
+              className="button"
+              onClick={() => void handleGenerateManagementBrief()}
+              disabled={briefLoading}
+            >
+              {briefLoading ? "Generating..." : "Generate Management Brief"}
+            </button>
+          </div>
+
+          {briefError ? <div className="assist-error">{briefError}</div> : null}
+
+          {briefDraft ? (
+            <div className="assist-draft-panel management-brief-draft">
+              <div className="assist-draft-header">
+                <div>
+                  <span className="assist-draft-kicker">AI-generated draft</span>
+                  <strong>Management brief</strong>
+                </div>
+                <span className="assist-provider">{briefDraft.provider}</span>
+              </div>
+              <pre>{briefDraft.draft}</pre>
+              <div className="assist-source-line">Sources: {briefDraft.source_fields.slice(0, 6).join(", ")}</div>
+              <div className="assist-disclaimer">{briefDraft.disclaimer}</div>
+              <div className="button-row assist-draft-actions">
+                <button type="button" className="button button-secondary button-compact" onClick={() => void handleCopyManagementBrief()}>
+                  Copy Draft
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
       ) : null}
 
       <section className="management-briefing console-briefing-band">
