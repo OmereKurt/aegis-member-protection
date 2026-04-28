@@ -216,6 +216,7 @@ Auth/session environment variables:
 ```text
 JWT_SECRET=replace-with-a-long-random-local-secret
 SESSION_COOKIE_NAME=aegis_session
+CSRF_COOKIE_NAME=aegis_csrf
 ACCESS_TOKEN_EXPIRE_MINUTES=480
 AUTH_DEMO_USERS_ENABLED=true
 SESSION_COOKIE_SECURE=false
@@ -229,6 +230,8 @@ Local demo users:
 | Fraud analyst | `fraud@aegis.local` | `AegisFraud123!` |
 | Manager | `manager@aegis.local` | `AegisManager123!` |
 | Admin | `admin@aegis.local` | `AegisAdmin123!` |
+
+Unsafe authenticated API requests use CSRF protection. The frontend fetch helper calls `GET /api/auth/csrf` and sends `X-CSRF-Token` automatically.
 
 For Docker Compose, the frontend uses separate backend URLs:
 

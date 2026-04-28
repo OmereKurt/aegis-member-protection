@@ -50,6 +50,8 @@ export type ActionLog = {
   created_at?: string | null;
   action_type: string;
   details: string;
+  actor_email?: string | null;
+  actor_role?: string | null;
 };
 
 export type CaseSignal = {

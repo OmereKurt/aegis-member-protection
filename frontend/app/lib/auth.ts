@@ -1,4 +1,4 @@
-import { apiUrl, fetchJson } from "./api";
+import { apiUrl, clearCsrfToken, fetchJson } from "./api";
 import type { AegisRole } from "./rbac";
 
 export type AuthUser = {
@@ -13,6 +13,7 @@ export function getCurrentUser() {
 }
 
 export function login(email: string, password: string) {
+  clearCsrfToken();
   return fetchJson<{ user: AuthUser }>(apiUrl("/api/auth/login"), {
     method: "POST",
     body: JSON.stringify({ email, password }),
@@ -20,6 +21,7 @@ export function login(email: string, password: string) {
 }
 
 export function logout() {
+  clearCsrfToken();
   return fetchJson<{ ok: boolean }>(apiUrl("/api/auth/logout"), {
     method: "POST",
   });

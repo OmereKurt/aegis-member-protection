@@ -44,3 +44,27 @@ def ensure_case_closure_columns():
         for column_name, column_type in closure_columns.items():
             if column_name not in existing_columns:
                 connection.execute(text(f"ALTER TABLE scam_cases ADD COLUMN {column_name} {column_type}"))
+
+
+def ensure_audit_actor_columns():
+    inspector = inspect(engine)
+    table_columns = {
+        "action_logs": {
+            "actor_email": "VARCHAR",
+            "actor_role": "VARCHAR",
+        },
+        "system_audit_logs": {
+            "actor_email": "VARCHAR",
+        },
+    }
+
+    table_names = set(inspector.get_table_names())
+    with engine.begin() as connection:
+        for table_name, columns in table_columns.items():
+            if table_name not in table_names:
+                continue
+
+            existing_columns = {column["name"] for column in inspector.get_columns(table_name)}
+            for column_name, column_type in columns.items():
+                if column_name not in existing_columns:
+                    connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"))

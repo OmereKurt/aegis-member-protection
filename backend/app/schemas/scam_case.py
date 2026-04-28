@@ -316,6 +316,8 @@ class ActionLogResponse(BaseModel):
     created_at: Optional[str] = None
     action_type: str
     details: str
+    actor_email: Optional[str] = None
+    actor_role: Optional[str] = None
 
 
 class ScamCaseResponse(BaseModel):

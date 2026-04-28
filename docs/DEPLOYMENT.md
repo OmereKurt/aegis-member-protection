@@ -26,6 +26,7 @@ Backend:
 | `FRONTEND_URL` | CORS allowlist URL for the frontend | `http://localhost:3000` |
 | `JWT_SECRET` | HMAC secret used to sign local JWT session cookies | Required outside throwaway local demos |
 | `SESSION_COOKIE_NAME` | HttpOnly session cookie name | `aegis_session` |
+| `CSRF_COOKIE_NAME` | Readable double-submit CSRF cookie name | `aegis_csrf` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Session lifetime in minutes | `480` |
 | `AUTH_DEMO_USERS_ENABLED` | Seeds deterministic local demo users on startup | `true` |
 | `SESSION_COOKIE_SECURE` | Sets the cookie `Secure` flag for HTTPS deployments | `false` locally |
@@ -70,6 +71,22 @@ Role summary:
 - `fraud_analyst`: view cases, update cases, complete playbook actions, close cases, view reporting
 - `manager`: view cases and reporting, read-only for case mutation
 - `admin`: full access, including seed/reset/delete demo utilities
+
+## Auth and CSRF Notes
+
+Aegis uses an HttpOnly cookie JWT session for local/demo authentication. Because cookie sessions are automatically sent by the browser, unsafe API methods require a signed CSRF token:
+
+- `GET /api/auth/csrf` issues a signed CSRF token bound to the current session.
+- Frontend API helpers include `X-CSRF-Token` for `POST`, `PUT`, `PATCH`, and `DELETE`.
+- `POST /api/auth/login` and `POST /api/auth/logout` are exempt so users can start/end sessions cleanly.
+
+Keep `SESSION_COOKIE_SECURE=false` for local HTTP. Use `SESSION_COOKIE_SECURE=true` behind HTTPS.
+
+Admin audit visibility:
+
+- `GET /api/audit/system`
+- Admin-only
+- Returns recent system audit log entries for seed/reset/delete activity and actor attribution.
 
 ## Manual Local Development
 

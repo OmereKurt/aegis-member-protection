@@ -35,12 +35,14 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 ## Key Threats
 
 - Unauthorized case access or case mutation
+- Cross-site request forgery against cookie-authenticated unsafe endpoints
 - Accidental destructive use of reset/seed/delete utilities
 - Write endpoint abuse or automated request bursts
 - Injection through free-text intake, notes, and closure fields
 - Sensitive data exposure through browser framing, MIME sniffing, or overly permissive headers
 - Weak environment separation causing frontend containers to call the wrong backend URL
 - Audit gaps for state-changing or destructive operations
+- Lack of centralized audit visibility for destructive admin operations
 - Local `.env` or database files accidentally committed
 
 ## Current Controls
@@ -67,15 +69,17 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - Case-level action logs for meaningful case changes.
 - System audit log table for destructive/admin operations that are not tied to a durable case after deletion/reset.
 - HttpOnly cookie-based JWT sessions signed with `JWT_SECRET`.
+- Signed double-submit CSRF protection for unsafe methods using `GET /api/auth/csrf` and `X-CSRF-Token`.
 - PBKDF2 password hashing with per-user salts.
 - Backend RBAC enforcement for protected case, reporting, mutation, closure, and demo-admin endpoints.
 - Frontend route protection and role-aware action visibility.
 - Shared RBAC constants/helpers in backend and frontend.
+- Admin-only `GET /api/audit/system` endpoint for recent system audit log visibility.
 - Docker environment separation:
   - browser-facing `NEXT_PUBLIC_API_BASE_URL`
   - container/server-facing `INTERNAL_API_BASE_URL`
 - `.env` files and local database files ignored by git.
-- Backend tests covering auth success/failure, current user, protected endpoint access, role restrictions, case creation, demo seeding, validation, security headers, rate limiter behavior, and RBAC helpers.
+- Backend tests covering auth success/failure, current user, protected endpoint access, CSRF enforcement, role restrictions, case creation, demo seeding, validation, security headers, rate limiter behavior, audit visibility, and RBAC helpers.
 
 ## Assumptions
 
@@ -84,6 +88,7 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - No production identity provider, SSO, MFA, password reset, or tenant model is connected yet.
 - Docker Compose is for local development, not production hosting.
 - The in-memory rate limiter is a foundation control only; it is not distributed across multiple backend instances.
+- CSRF protection is practical for local/demo cookie auth; production deployment should review domain, TLS, proxy, and same-site behavior.
 - Demo/reset utilities remain available because they are useful for founder demos and local evaluation.
 
 ## Planned Controls
@@ -92,11 +97,11 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - MFA and production password/account lifecycle controls if local users remain supported.
 - Tenant and institution isolation.
 - Persistent/distributed rate limiting for deployed environments.
-- Structured audit log viewer and export path.
+- Frontend audit log viewer, export path, and centralized log shipping/SIEM integration.
 - Database migrations with Alembic.
 - Secrets management for deployed environments.
 - TLS termination and production CORS allowlist.
-- CSRF strategy review for cookie-authenticated write operations before production exposure.
+- Production CSRF review under HTTPS, real domains, and deployed proxy headers.
 - More complete dependency scanning and container scanning in CI.
 
 ## Future Security Test Cases

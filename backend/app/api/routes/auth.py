@@ -4,9 +4,11 @@ from sqlalchemy.orm import Session
 
 from app.core.auth import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
+    CSRF_COOKIE_NAME,
     SESSION_COOKIE_NAME,
     SESSION_COOKIE_SECURE,
     create_access_token,
+    create_csrf_token,
     db_session,
     get_current_user,
     public_user,
@@ -47,15 +49,52 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(db_se
         max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
     )
+    csrf_token = create_csrf_token(token)
+    response.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=csrf_token,
+        httponly=False,
+        secure=SESSION_COOKIE_SECURE,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
     return {"user": public_user(user)}
 
 
 @router.post("/logout")
 def logout(response: Response):
     response.delete_cookie(key=SESSION_COOKIE_NAME, path="/", samesite="lax")
+    response.delete_cookie(key=CSRF_COOKIE_NAME, path="/", samesite="lax")
     return {"ok": True}
 
 
 @router.get("/me")
 def me(user: User = Depends(get_current_user)):
     return {"user": public_user(user)}
+
+
+@router.get("/csrf")
+def csrf(response: Response, user: User = Depends(get_current_user)):
+    # get_current_user verifies the session; the signed CSRF token is bound to the session cookie.
+    token = create_access_token(user)
+    csrf_token = create_csrf_token(token)
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=SESSION_COOKIE_SECURE,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    response.set_cookie(
+        key=CSRF_COOKIE_NAME,
+        value=csrf_token,
+        httponly=False,
+        secure=SESSION_COOKIE_SECURE,
+        samesite="lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    return {"csrf_token": csrf_token}

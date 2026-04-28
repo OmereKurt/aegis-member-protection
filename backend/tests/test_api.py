@@ -38,6 +38,12 @@ def login_as(email: str):
     return response.json()["user"]
 
 
+def csrf_headers():
+    response = client.get("/api/auth/csrf")
+    assert response.status_code == 200
+    return {"X-CSRF-Token": response.json()["csrf_token"]}
+
+
 @atexit.register
 def remove_test_database():
     if TEST_DB_PATH.exists():
@@ -46,7 +52,7 @@ def remove_test_database():
 
 def reset_cases():
     login_as("admin@aegis.local")
-    response = client.post("/api/scam-cases/reset-demo-data")
+    response = client.post("/api/scam-cases/reset-demo-data", headers=csrf_headers())
     assert response.status_code == 200
 
 
@@ -96,7 +102,7 @@ def test_create_case_and_list_cases():
         "older_or_vulnerable_customer": True,
     }
 
-    create_response = client.post("/api/scam-cases/", json=payload)
+    create_response = client.post("/api/scam-cases/", json=payload, headers=csrf_headers())
     assert create_response.status_code == 200
 
     created = create_response.json()
@@ -118,7 +124,7 @@ def test_seed_demo_data_endpoint():
     reset_cases()
     login_as("admin@aegis.local")
 
-    seed_response = client.post("/api/scam-cases/seed-demo-data")
+    seed_response = client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers())
     assert seed_response.status_code == 200
     seed_result = seed_response.json()
     assert seed_result["seeded_cases"] >= 8

@@ -12,6 +12,7 @@ class SystemAuditLog(Base):
 
     action_type = Column(String, nullable=False, index=True)
     details = Column(Text, nullable=False)
+    actor_email = Column(String, nullable=True)
     actor_role = Column(String, nullable=True)
     resource_type = Column(String, nullable=True)
     resource_id = Column(String, nullable=True)

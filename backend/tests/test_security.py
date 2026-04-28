@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 
 from app.core.security import AegisRole, InMemoryRateLimiter, Permission, role_has_permission
-from test_api import client, login_as, reset_cases
+from test_api import client, csrf_headers, login_as, reset_cases
 
 
 def test_security_headers_are_present():
@@ -27,6 +27,7 @@ def test_invalid_amount_payload_is_rejected():
             "amount_at_risk": -1,
             "narrative": "Invalid test payload.",
         },
+        headers=csrf_headers(),
     )
 
     assert response.status_code == 422
@@ -81,7 +82,52 @@ def test_unauthenticated_user_is_blocked_from_cases():
 def test_branch_user_cannot_reset_demo_data():
     login_as("branch@aegis.local")
 
-    response = client.post("/api/scam-cases/reset-demo-data")
+    response = client.post("/api/scam-cases/reset-demo-data", headers=csrf_headers())
+
+    assert response.status_code == 403
+
+
+def test_branch_user_cannot_close_seed_or_delete_cases():
+    reset_cases()
+    login_as("admin@aegis.local")
+    seed = client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers())
+    assert seed.status_code == 200
+    case_id = client.get("/api/scam-cases/").json()[0]["id"]
+
+    login_as("branch@aegis.local")
+    close_response = client.put(
+        f"/api/scam-cases/{case_id}/close",
+        json={
+            "outcome_type": "member_protected",
+            "closure_summary": "Branch user should not close cases.",
+            "follow_up_required": False,
+        },
+        headers=csrf_headers(),
+    )
+    assert close_response.status_code == 403
+
+    seed_response = client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers())
+    assert seed_response.status_code == 403
+
+    delete_response = client.delete(f"/api/scam-cases/{case_id}", headers=csrf_headers())
+    assert delete_response.status_code == 403
+
+
+def test_unsafe_request_requires_csrf_token():
+    login_as("branch@aegis.local")
+
+    response = client.post(
+        "/api/scam-cases/",
+        json={
+            "customer_identifier": "TEST-CSRF",
+            "age_band": "70_79",
+            "source_unit": "Contact Center",
+            "intake_channel": "phone",
+            "transaction_type": "wire",
+            "amount_at_risk": 100,
+            "narrative": "Missing CSRF token should be rejected.",
+        },
+    )
 
     assert response.status_code == 403
 
@@ -100,10 +146,15 @@ def test_fraud_analyst_can_update_and_close_case():
             "amount_at_risk": 5000,
             "narrative": "Member reported suspected exploitation.",
         },
+        headers=csrf_headers(),
     ).json()
 
     login_as("fraud@aegis.local")
-    update_response = client.put(f"/api/scam-cases/{created['id']}/status", json={"status": "In Review"})
+    update_response = client.put(
+        f"/api/scam-cases/{created['id']}/status",
+        json={"status": "In Review"},
+        headers=csrf_headers(),
+    )
     assert update_response.status_code == 200
     assert update_response.json()["status"] == "In Review"
 
@@ -116,15 +167,29 @@ def test_fraud_analyst_can_update_and_close_case():
             "trusted_contact_engaged": False,
             "fraud_ops_involved": True,
         },
+        headers=csrf_headers(),
     )
     assert close_response.status_code == 200
     assert close_response.json()["status"] == "Closed"
 
 
+def test_fraud_analyst_cannot_seed_reset_or_delete():
+    reset_cases()
+    login_as("admin@aegis.local")
+    seed = client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers())
+    assert seed.status_code == 200
+    case_id = client.get("/api/scam-cases/").json()[0]["id"]
+
+    login_as("fraud@aegis.local")
+    assert client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers()).status_code == 403
+    assert client.post("/api/scam-cases/reset-demo-data", headers=csrf_headers()).status_code == 403
+    assert client.delete(f"/api/scam-cases/{case_id}", headers=csrf_headers()).status_code == 403
+
+
 def test_manager_can_view_but_cannot_mutate_cases():
     reset_cases()
     login_as("admin@aegis.local")
-    seed = client.post("/api/scam-cases/seed-demo-data")
+    seed = client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers())
     assert seed.status_code == 200
 
     login_as("manager@aegis.local")
@@ -132,20 +197,60 @@ def test_manager_can_view_but_cannot_mutate_cases():
     assert list_response.status_code == 200
     case_id = list_response.json()[0]["id"]
 
-    update_response = client.put(f"/api/scam-cases/{case_id}/status", json={"status": "In Review"})
+    update_response = client.put(
+        f"/api/scam-cases/{case_id}/status",
+        json={"status": "In Review"},
+        headers=csrf_headers(),
+    )
     assert update_response.status_code == 403
+
+    close_response = client.put(
+        f"/api/scam-cases/{case_id}/close",
+        json={
+            "outcome_type": "member_protected",
+            "closure_summary": "Manager should not close cases.",
+            "follow_up_required": False,
+        },
+        headers=csrf_headers(),
+    )
+    assert close_response.status_code == 403
+
+    assert client.delete(f"/api/scam-cases/{case_id}", headers=csrf_headers()).status_code == 403
+    assert client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers()).status_code == 403
+    assert client.post("/api/scam-cases/reset-demo-data", headers=csrf_headers()).status_code == 403
 
 
 def test_admin_can_seed_reset_and_delete_cases():
     reset_cases()
     login_as("admin@aegis.local")
 
-    seed_response = client.post("/api/scam-cases/seed-demo-data")
+    seed_response = client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers())
     assert seed_response.status_code == 200
 
     cases = client.get("/api/scam-cases/").json()
-    delete_response = client.delete(f"/api/scam-cases/{cases[0]['id']}")
+    delete_response = client.delete(f"/api/scam-cases/{cases[0]['id']}", headers=csrf_headers())
     assert delete_response.status_code == 200
 
-    reset_response = client.post("/api/scam-cases/reset-demo-data")
+    reset_response = client.post("/api/scam-cases/reset-demo-data", headers=csrf_headers())
     assert reset_response.status_code == 200
+
+
+def test_admin_can_view_system_audit_logs():
+    reset_cases()
+    login_as("admin@aegis.local")
+    seed_response = client.post("/api/scam-cases/seed-demo-data", headers=csrf_headers())
+    assert seed_response.status_code == 200
+
+    audit_response = client.get("/api/audit/system")
+    assert audit_response.status_code == 200
+    logs = audit_response.json()
+    assert logs
+    assert logs[0]["actor_email"] == "admin@aegis.local"
+
+
+def test_non_admin_cannot_view_system_audit_logs():
+    login_as("manager@aegis.local")
+
+    response = client.get("/api/audit/system")
+
+    assert response.status_code == 403

@@ -13,3 +13,5 @@ class ActionLog(Base):
 
     action_type = Column(String, nullable=False)
     details = Column(Text, nullable=False)
+    actor_email = Column(String, nullable=True)
+    actor_role = Column(String, nullable=True)

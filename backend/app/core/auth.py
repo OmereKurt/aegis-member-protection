@@ -17,10 +17,13 @@ from app.models.user import User
 
 JWT_SECRET = os.getenv("JWT_SECRET", "dev-only-change-me")
 SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "aegis_session")
+CSRF_COOKIE_NAME = os.getenv("CSRF_COOKIE_NAME", "aegis_csrf")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").lower() == "true"
 AUTH_DEMO_USERS_ENABLED = os.getenv("AUTH_DEMO_USERS_ENABLED", "true").lower() == "true"
 PASSWORD_ITERATIONS = 210_000
+UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+CSRF_EXEMPT_PATHS = {"/api/auth/login", "/api/auth/logout"}
 
 
 DEMO_USERS = [
@@ -103,6 +106,51 @@ def create_access_token(user: User) -> str:
     )
     signature = hmac.new(JWT_SECRET.encode("utf-8"), signing_input.encode("ascii"), hashlib.sha256).digest()
     return f"{signing_input}.{_b64url_encode(signature)}"
+
+
+def create_csrf_token(session_token: str) -> str:
+    nonce = secrets.token_urlsafe(24)
+    signature = hmac.new(
+        JWT_SECRET.encode("utf-8"),
+        f"{session_token}:{nonce}".encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    return f"{nonce}.{_b64url_encode(signature)}"
+
+
+def verify_csrf_token(session_token: str, csrf_token: str) -> bool:
+    try:
+        nonce, signature = csrf_token.split(".", 1)
+    except ValueError:
+        return False
+
+    expected = hmac.new(
+        JWT_SECRET.encode("utf-8"),
+        f"{session_token}:{nonce}".encode("utf-8"),
+        hashlib.sha256,
+    ).digest()
+    return hmac.compare_digest(_b64url_encode(expected), signature)
+
+
+def csrf_required(request: Request) -> bool:
+    return request.method.upper() in UNSAFE_METHODS and request.url.path not in CSRF_EXEMPT_PATHS
+
+
+def validate_csrf_request(request: Request) -> None:
+    if not csrf_required(request):
+        return
+
+    session_token = request.cookies.get(SESSION_COOKIE_NAME)
+    if not session_token:
+        return
+
+    csrf_cookie = request.cookies.get(CSRF_COOKIE_NAME)
+    csrf_header = request.headers.get("x-csrf-token")
+    if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid CSRF token")
+
+    if not verify_csrf_token(session_token, csrf_header):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid CSRF token")
 
 
 def decode_access_token(token: str) -> dict:

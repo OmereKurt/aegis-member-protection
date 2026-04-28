@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async logout() {
         await logoutRequest();
         setUser(null);
+        window.location.assign("/login");
       },
       can(permission) {
         return user ? roleHasPermission(user.role, permission) : false;
@@ -90,6 +91,16 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const redirect = encodeURIComponent(pathname);
     router.replace(`/login?redirect=${redirect}`);
   }, [auth.isLoading, auth.user, pathname, router]);
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      if (isPublicRoute(pathname)) return;
+      router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+    }
+
+    window.addEventListener("aegis-auth-unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("aegis-auth-unauthorized", handleUnauthorized);
+  }, [pathname, router]);
 
   if (isPublicRoute(pathname)) return children;
 

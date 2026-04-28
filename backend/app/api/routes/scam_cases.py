@@ -3,16 +3,16 @@ from datetime import datetime, timezone
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.auth import require_permission
 from app.core.database import SessionLocal
-from app.core.security import rate_limit
-from app.core.security import Permission
+from app.core.security import Permission, rate_limit
 from app.models.action_log import ActionLog
 from app.models.scam_case import ScamCase
 from app.models.system_audit_log import SystemAuditLog
+from app.models.user import User
 from app.schemas.scam_case import (
     CaseActionUpdate,
     CaseAssignmentUpdate,
@@ -27,7 +27,7 @@ from app.services.scam_case_logic import build_case_artifacts, build_case_intell
 router = APIRouter(prefix="/api/scam-cases", tags=["cases"])
 
 WRITE_RATE_LIMIT = Depends(rate_limit("case_write", limit=120, window_seconds=60))
-ADMIN_RATE_LIMIT = Depends(rate_limit("case_admin", limit=20, window_seconds=60))
+ADMIN_RATE_LIMIT = Depends(rate_limit("case_admin", limit=100, window_seconds=60))
 VIEW_CASES = Depends(require_permission(Permission.view_cases))
 CREATE_INTAKE = Depends(require_permission(Permission.create_intake))
 UPDATE_CASE = Depends(require_permission(Permission.update_case))
@@ -382,11 +382,19 @@ DEMO_CASES = [
 ]
 
 
-def write_action_log(db: Session, scam_case_id: int, action_type: str, details: str):
+def write_action_log(
+    db: Session,
+    scam_case_id: int,
+    action_type: str,
+    details: str,
+    actor: Optional[User] = None,
+):
     log = ActionLog(
         scam_case_id=scam_case_id,
         action_type=action_type,
         details=details,
+        actor_email=actor.email if actor else None,
+        actor_role=actor.role if actor else None,
     )
     db.add(log)
     db.commit()
@@ -394,16 +402,12 @@ def write_action_log(db: Session, scam_case_id: int, action_type: str, details: 
     return log
 
 
-def actor_role_from_request(request: Request) -> Optional[str]:
-    role = request.headers.get("x-aegis-role")
-    return role.strip()[:80] if role else None
-
-
 def write_system_audit_log(
     db: Session,
     action_type: str,
     details: str,
     *,
+    actor_email: Optional[str] = None,
     actor_role: Optional[str] = None,
     resource_type: Optional[str] = None,
     resource_id: Optional[str] = None,
@@ -411,6 +415,7 @@ def write_system_audit_log(
     log = SystemAuditLog(
         action_type=action_type,
         details=details,
+        actor_email=actor_email,
         actor_role=actor_role,
         resource_type=resource_type,
         resource_id=resource_id,
@@ -435,6 +440,8 @@ def serialize_action_logs(db: Session, scam_case_id: int) -> list[dict]:
             "created_at": log.created_at.isoformat() if log.created_at else None,
             "action_type": log.action_type,
             "details": log.details,
+            "actor_email": log.actor_email,
+            "actor_role": log.actor_role,
         }
         for log in logs
     ]
@@ -577,7 +584,7 @@ def get_scam_case_summary():
 
 @router.post("/", response_model=ScamCaseResponse, summary="Create Case", dependencies=[WRITE_RATE_LIMIT, CREATE_INTAKE])
 @router.post("/intake", response_model=ScamCaseResponse, summary="Create Intake Case", dependencies=[WRITE_RATE_LIMIT, CREATE_INTAKE])
-def create_scam_case(payload: ScamCaseIntakeRequest):
+def create_scam_case(payload: ScamCaseIntakeRequest, current_user: User = Depends(require_permission(Permission.create_intake))):
     db: Session = SessionLocal()
 
     try:
@@ -626,6 +633,7 @@ def create_scam_case(payload: ScamCaseIntakeRequest):
             scam_case.id,
             "case_created",
             f"Case created from {scam_case.source_unit} with {scam_case.urgency} urgency and scam type {scam_case.scam_type}.",
+            current_user,
         )
 
         return serialize_case(db, scam_case)
@@ -633,7 +641,7 @@ def create_scam_case(payload: ScamCaseIntakeRequest):
         db.close()
 
 
-def build_seed_case(db: Session, seed: dict) -> ScamCase:
+def build_seed_case(db: Session, seed: dict, actor: Optional[User] = None) -> ScamCase:
     payload = ScamCaseIntakeRequest(**seed["intake"])
     artifacts = build_case_artifacts(payload)
 
@@ -680,6 +688,7 @@ def build_seed_case(db: Session, seed: dict) -> ScamCase:
         scam_case.id,
         "case_created",
         f"Curated demo case seeded from {scam_case.source_unit} with {scam_case.urgency} urgency.",
+        actor,
     )
 
     if scam_case.assigned_owner or scam_case.assigned_team:
@@ -690,6 +699,7 @@ def build_seed_case(db: Session, seed: dict) -> ScamCase:
             scam_case.id,
             "assignment_updated",
             f"Assignment updated to owner: {owner_text}; team: {team_text}.",
+            actor,
         )
 
     closure = seed.get("closure")
@@ -703,6 +713,7 @@ def build_seed_case(db: Session, seed: dict) -> ScamCase:
             scam_case.id,
             "status_changed",
             f"Status changed from New to {scam_case.status}.",
+            actor,
         )
 
     for step in seed.get("playbook_completed", []):
@@ -711,6 +722,7 @@ def build_seed_case(db: Session, seed: dict) -> ScamCase:
             scam_case.id,
             "playbook_step_completed",
             f"Playbook step completed: {step}.",
+            actor,
         )
 
     for step in seed.get("playbook_skipped", []):
@@ -719,10 +731,11 @@ def build_seed_case(db: Session, seed: dict) -> ScamCase:
             scam_case.id,
             "playbook_step_skipped",
             f"Playbook step skipped: {step}.",
+            actor,
         )
 
     for action_type, details in seed.get("history", []):
-        write_action_log(db, scam_case.id, action_type, details)
+        write_action_log(db, scam_case.id, action_type, details, actor)
 
     if closure:
         scam_case.status = "Closed"
@@ -758,13 +771,14 @@ def build_seed_case(db: Session, seed: dict) -> ScamCase:
                     f"Summary: {scam_case.closure_summary}",
                 ]
             ),
+            actor,
         )
 
     return scam_case
 
 
 @router.post("/reset-demo-data", summary="Reset Demo Data", dependencies=[ADMIN_RATE_LIMIT, MANAGE_DEMO_DATA])
-def reset_demo_data(request: Request):
+def reset_demo_data(current_user: User = Depends(require_permission(Permission.manage_demo_data))):
     db: Session = SessionLocal()
 
     try:
@@ -776,7 +790,8 @@ def reset_demo_data(request: Request):
             db,
             "demo_data_reset",
             f"Reset demo data. Deleted {deleted_cases} cases and {deleted_logs} case action logs.",
-            actor_role=actor_role_from_request(request),
+            actor_email=current_user.email,
+            actor_role=current_user.role,
             resource_type="demo_data",
         )
 
@@ -786,7 +801,7 @@ def reset_demo_data(request: Request):
 
 
 @router.post("/seed-demo-data", summary="Seed Demo Data", dependencies=[ADMIN_RATE_LIMIT, MANAGE_DEMO_DATA])
-def seed_demo_data(request: Request):
+def seed_demo_data(current_user: User = Depends(require_permission(Permission.manage_demo_data))):
     db: Session = SessionLocal()
 
     try:
@@ -794,13 +809,14 @@ def seed_demo_data(request: Request):
         deleted_cases = db.query(ScamCase).delete()
         db.commit()
 
-        seeded = [build_seed_case(db, seed) for seed in DEMO_CASES]
+        seeded = [build_seed_case(db, seed, current_user) for seed in DEMO_CASES]
 
         write_system_audit_log(
             db,
             "demo_data_seeded",
             f"Seeded {len(seeded)} curated demo cases after deleting {deleted_cases} existing cases.",
-            actor_role=actor_role_from_request(request),
+            actor_email=current_user.email,
+            actor_role=current_user.role,
             resource_type="demo_data",
         )
 
@@ -814,7 +830,7 @@ def seed_demo_data(request: Request):
 
 
 @router.delete("/{case_id}", summary="Delete Case", dependencies=[ADMIN_RATE_LIMIT, MANAGE_DEMO_DATA])
-def delete_scam_case(case_id: int, request: Request):
+def delete_scam_case(case_id: int, current_user: User = Depends(require_permission(Permission.manage_demo_data))):
     db: Session = SessionLocal()
 
     try:
@@ -832,7 +848,8 @@ def delete_scam_case(case_id: int, request: Request):
             db,
             "case_deleted",
             f"Deleted case {case_reference}.",
-            actor_role=actor_role_from_request(request),
+            actor_email=current_user.email,
+            actor_role=current_user.role,
             resource_type="case",
             resource_id=str(case_id),
         )
@@ -843,7 +860,7 @@ def delete_scam_case(case_id: int, request: Request):
 
 
 @router.post("/{case_id}/actions", response_model=ScamCaseResponse, summary="Record Case Action", dependencies=[WRITE_RATE_LIMIT, UPDATE_CASE])
-def record_case_action(case_id: int, payload: CaseActionUpdate):
+def record_case_action(case_id: int, payload: CaseActionUpdate, current_user: User = Depends(require_permission(Permission.update_case))):
     db: Session = SessionLocal()
 
     try:
@@ -896,6 +913,7 @@ def record_case_action(case_id: int, payload: CaseActionUpdate):
             case.id,
             payload.action_type,
             " ".join(detail_parts),
+            current_user,
         )
         return serialize_case(db, case)
     finally:
@@ -918,7 +936,7 @@ def get_scam_case(case_id: int):
 
 
 @router.put("/{case_id}/status", response_model=ScamCaseResponse, summary="Update Case Status", dependencies=[WRITE_RATE_LIMIT, UPDATE_CASE])
-def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
+def update_scam_case_status(case_id: int, payload: CaseStatusUpdate, current_user: User = Depends(require_permission(Permission.update_case))):
     db: Session = SessionLocal()
 
     try:
@@ -940,6 +958,7 @@ def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
             case.id,
             "status_changed",
             f"Status changed from {old_status} to {case.status}.",
+            current_user,
         )
         return serialize_case(db, case)
     finally:
@@ -947,7 +966,7 @@ def update_scam_case_status(case_id: int, payload: CaseStatusUpdate):
 
 
 @router.put("/{case_id}/notes", response_model=ScamCaseResponse, summary="Update Case Notes", dependencies=[WRITE_RATE_LIMIT, UPDATE_CASE])
-def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
+def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate, current_user: User = Depends(require_permission(Permission.update_case))):
     db: Session = SessionLocal()
 
     try:
@@ -969,6 +988,7 @@ def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
             case.id,
             "notes_updated",
             preview,
+            current_user,
         )
         return serialize_case(db, case)
     finally:
@@ -976,7 +996,7 @@ def update_scam_case_notes(case_id: int, payload: CaseNotesUpdate):
 
 
 @router.put("/{case_id}/assignment", response_model=ScamCaseResponse, summary="Update Case Assignment", dependencies=[WRITE_RATE_LIMIT, UPDATE_CASE])
-def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
+def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate, current_user: User = Depends(require_permission(Permission.update_case))):
     db: Session = SessionLocal()
 
     try:
@@ -1003,6 +1023,7 @@ def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
             case.id,
             "assignment_updated",
             f"Assignment updated to owner: {owner_text}; team: {team_text}.",
+            current_user,
         )
         return serialize_case(db, case)
     finally:
@@ -1010,7 +1031,7 @@ def update_scam_case_assignment(case_id: int, payload: CaseAssignmentUpdate):
 
 
 @router.put("/{case_id}/close", response_model=ScamCaseResponse, summary="Close Case", dependencies=[WRITE_RATE_LIMIT, CLOSE_CASE])
-def close_scam_case(case_id: int, payload: CaseCloseUpdate):
+def close_scam_case(case_id: int, payload: CaseCloseUpdate, current_user: User = Depends(require_permission(Permission.close_case))):
     db: Session = SessionLocal()
 
     try:
@@ -1053,6 +1074,7 @@ def close_scam_case(case_id: int, payload: CaseCloseUpdate):
                     f"Summary: {case.closure_summary}",
                 ]
             ),
+            current_user,
         )
         return serialize_case(db, case)
     finally:
