@@ -83,7 +83,7 @@ Reporting 2.0 provides a management console for workload posture, source/pattern
 | Backend | FastAPI, SQLAlchemy, Pydantic |
 | Persistence | SQLite fallback, Postgres support |
 | Deployment/local stack | Docker Compose |
-| Quality | GitHub Actions CI, backend tests |
+| Quality | GitHub Actions CI, 31 backend tests, 63 frontend tests |
 | Security | Auth, RBAC, CSRF, security headers, rate limiting, input validation, audit logging |
 
 ## Security and Enterprise Controls
@@ -183,8 +183,21 @@ Frontend:
 ```bash
 cd frontend
 npm run lint
+npm test
 npm run build
 ```
+
+The frontend suite covers `app/lib/`: the API client's CSRF and error handling,
+the backend-to-queue mappers, and the role/permission table. It runs in Node with
+no DOM, because none of those modules render.
+
+One of those tests reads `backend/app/core/security.py` and compares it to
+`frontend/app/lib/rbac.ts`. The frontend keeps its own copy of the permission
+matrix so it can hide actions a role cannot take, and nothing otherwise links the
+two. Drift is not cosmetic in either direction: granting more in the UI offers a
+button the API answers with 403, and granting less quietly removes access a role
+is entitled to. If someone edits one matrix and not the other, that test fails and
+names the role.
 
 Backend:
 

@@ -6,7 +6,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend lint and build
+    name: Frontend lint, tests and build
     runs-on: ubuntu-latest
 
     steps:
@@ -27,6 +27,10 @@ jobs:
       - name: Run frontend lint
         working-directory: frontend
         run: npm run lint
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test
 
       - name: Build frontend
         working-directory: frontend
