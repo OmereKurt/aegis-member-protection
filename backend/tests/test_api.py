@@ -15,6 +15,7 @@ os.environ.setdefault("ENVIRONMENT", "test")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.core.database import engine  # noqa: E402
 from app.main import app  # noqa: E402
 
 
@@ -46,8 +47,13 @@ def csrf_headers():
 
 @atexit.register
 def remove_test_database():
-    if TEST_DB_PATH.exists():
-        TEST_DB_PATH.unlink()
+    # Windows will not unlink a file the engine still holds open, so close the
+    # pool before deleting. A leftover temp file is not worth failing exit over.
+    engine.dispose()
+    try:
+        TEST_DB_PATH.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 def reset_cases():

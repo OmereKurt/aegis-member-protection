@@ -63,6 +63,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async logout() {
         await logoutRequest();
         setUser(null);
+        // Hard navigation, not router.push: discards all client-side React
+        // state and cached case data instead of carrying it into the next
+        // session on a shared workstation.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.assign("/login");
       },
       can(permission) {
