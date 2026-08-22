@@ -1,0 +1,8 @@
+# Pin line endings so a Windows checkout and Ubuntu CI see the same bytes.
+# Without this, core.autocrlf rewrites the working tree to CRLF and anything
+# doing a byte comparison disagrees with CI for no real reason.
+* text=auto eol=lf
+
+# Binary: never touch these.
+*.png binary
+*.ico binary
