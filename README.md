@@ -205,7 +205,6 @@ aegis-member-protection/
 ├── backend/              # FastAPI backend, models, schemas, routes, services, tests
 ├── frontend/             # Next.js frontend application
 ├── docs/                 # Deployment, threat model, demo notes, screenshots
-├── legacy/               # Archived prototype files kept for reference
 ├── docker-compose.yml    # Frontend, backend, and Postgres local stack
 ├── .github/workflows/    # CI checks
 └── README.md
