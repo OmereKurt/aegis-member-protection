@@ -88,6 +88,7 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
   - browser-facing `NEXT_PUBLIC_API_BASE_URL`
   - container/server-facing `INTERNAL_API_BASE_URL`
 - `.env` files and local database files ignored by git.
+- Startup guard on the token signing key: outside `development`, `docker`, `test`, `ci` and `local`, the backend refuses to start if `JWT_SECRET` is still the built-in default or is shorter than 32 characters. `JWT_SECRET` signs both the session token and the CSRF token, so a known value forfeits authentication and CSRF protection together.
 - Backend tests covering auth success/failure, current user, protected endpoint access, CSRF enforcement, role restrictions, case creation, demo seeding, validation, security headers, rate limiter behavior, audit visibility, assist endpoint access, and RBAC helpers.
 
 ## Assumptions
@@ -97,6 +98,7 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - No production identity provider, SSO, MFA, password reset, or tenant model is connected yet.
 - Docker Compose is for local development, not production hosting.
 - The in-memory rate limiter is a foundation control only; it is not distributed across multiple backend instances.
+- The rate limiter buckets on `request.client.host`, which is the connecting peer. Deployed behind a reverse proxy or load balancer that is the proxy's address, so every client collapses into a single bucket and the limit becomes global rather than per-client — one caller can then exhaust it for everyone. Trusting `X-Forwarded-For` requires a trusted-proxy hop count first, since the header is caller-supplied.
 - CSRF protection is practical for local/demo cookie auth; production deployment should review domain, TLS, proxy, and same-site behavior.
 - Aegis Assist is assistive only. Human operators remain accountable for notes, interventions, closures, and management decisions.
 - Management brief drafts summarize live reporting data, but managers remain accountable for interpretation and follow-up.
@@ -109,6 +111,7 @@ The local/demo auth system seeds deterministic users when `AUTH_DEMO_USERS_ENABL
 - MFA and production password/account lifecycle controls if local users remain supported.
 - Tenant and institution isolation.
 - Persistent/distributed rate limiting for deployed environments.
+- Proxy-aware client identification for rate limiting: a trusted-proxy list and `X-Forwarded-For` hop count, so limits apply per client rather than per proxy.
 - Frontend audit log viewer, export path, and centralized log shipping/SIEM integration.
 - Database migrations with Alembic.
 - Secrets management for deployed environments.

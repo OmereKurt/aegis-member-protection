@@ -94,6 +94,29 @@ rate_limiter = InMemoryRateLimiter()
 
 
 def rate_limit(scope: str, limit: int = 30, window_seconds: int = 60):
+    """
+    Per-client rate limit for a named scope.
+
+    Two limits worth stating plainly, because both change what this control is
+    worth rather than merely how well it performs:
+
+    1. The bucket key is ``request.client.host``, the peer address of the TCP
+       connection. Directly exposed that is the caller. Behind a reverse proxy
+       or load balancer it is the *proxy*, so every client collapses into one
+       bucket -- the limit stops being per-client and becomes global, and one
+       noisy caller can exhaust it for everybody. Honouring ``X-Forwarded-For``
+       instead is only safe once a trusted-proxy list decides how many hops to
+       skip, since the header is caller-supplied and trivially spoofed. That
+       belongs with the deployment work, not here.
+
+    2. State lives in this process. A second worker or replica gets its own
+       counters, so the effective limit multiplies by the instance count.
+
+    Both make this a foundation control for the local/demo posture, not a
+    defence to rely on once Aegis is deployed behind real infrastructure.
+    See docs/THREAT_MODEL.md.
+    """
+
     def dependency(request: Request) -> None:
         client = request.client.host if request.client else "unknown"
         rate_limiter.check(f"{scope}:{client}", limit, window_seconds)

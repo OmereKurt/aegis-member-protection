@@ -15,7 +15,51 @@ from app.core.security import AegisRole, Permission, role_has_permission
 from app.models.user import User
 
 
-JWT_SECRET = os.getenv("JWT_SECRET", "dev-only-change-me")
+DEFAULT_JWT_SECRET = "dev-only-change-me"
+MIN_PRODUCTION_SECRET_LENGTH = 32
+
+# Environments where the built-in signing key is acceptable because nothing real
+# is behind it. Anything else is treated as production and must supply its own.
+NON_PRODUCTION_ENVIRONMENTS = {"development", "docker", "test", "ci", "local"}
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development").strip().lower()
+JWT_SECRET = os.getenv("JWT_SECRET", DEFAULT_JWT_SECRET)
+
+
+def validate_jwt_secret(environment: str, secret: str) -> None:
+    """
+    Refuse to start in production on a signing key that is not secret.
+
+    JWT_SECRET signs the session token and the CSRF token, so a known value
+    forfeits both at once: anyone holding it can mint a session for any user
+    at any role, admin included, and forge the matching CSRF token to go with
+    it. A default that quietly works everywhere is exactly how that ships, so
+    it fails here at import rather than depending on deployment discipline.
+
+    Kept as a pure function of its two inputs so the failure modes can be
+    tested without reimporting the module under a patched environment.
+    """
+    if environment in NON_PRODUCTION_ENVIRONMENTS:
+        return
+
+    if secret == DEFAULT_JWT_SECRET:
+        raise RuntimeError(
+            f"JWT_SECRET is still the built-in default with ENVIRONMENT={environment!r}. "
+            "Set JWT_SECRET to a long random value before starting outside "
+            f"{sorted(NON_PRODUCTION_ENVIRONMENTS)}. Generate one with: "
+            "python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+        )
+
+    if len(secret) < MIN_PRODUCTION_SECRET_LENGTH:
+        raise RuntimeError(
+            f"JWT_SECRET is {len(secret)} characters with ENVIRONMENT={environment!r}; "
+            f"at least {MIN_PRODUCTION_SECRET_LENGTH} are required. Generate one with: "
+            "python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+        )
+
+
+validate_jwt_secret(ENVIRONMENT, JWT_SECRET)
+
 SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "aegis_session")
 CSRF_COOKIE_NAME = os.getenv("CSRF_COOKIE_NAME", "aegis_csrf")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))

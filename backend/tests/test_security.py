@@ -1,5 +1,12 @@
+import pytest
 from fastapi import HTTPException
 
+from app.core.auth import (
+    DEFAULT_JWT_SECRET,
+    MIN_PRODUCTION_SECRET_LENGTH,
+    NON_PRODUCTION_ENVIRONMENTS,
+    validate_jwt_secret,
+)
 from app.core.security import AegisRole, InMemoryRateLimiter, Permission, role_has_permission
 from test_api import client, csrf_headers, login_as, reset_cases
 
@@ -254,3 +261,40 @@ def test_non_admin_cannot_view_system_audit_logs():
     response = client.get("/api/audit/system")
 
     assert response.status_code == 403
+
+
+def test_default_jwt_secret_is_rejected_in_production():
+    with pytest.raises(RuntimeError) as excinfo:
+        validate_jwt_secret("production", DEFAULT_JWT_SECRET)
+
+    assert "JWT_SECRET" in str(excinfo.value)
+
+
+def test_short_jwt_secret_is_rejected_in_production():
+    with pytest.raises(RuntimeError) as excinfo:
+        validate_jwt_secret("production", "x" * (MIN_PRODUCTION_SECRET_LENGTH - 1))
+
+    assert str(MIN_PRODUCTION_SECRET_LENGTH) in str(excinfo.value)
+
+
+def test_strong_jwt_secret_is_accepted_in_production():
+    validate_jwt_secret("production", "x" * MIN_PRODUCTION_SECRET_LENGTH)
+
+
+def test_unrecognised_environment_is_treated_as_production():
+    # Anything not explicitly a dev environment must fail closed, so that a
+    # typo like ENVIRONMENT=prodution does not silently disable the guard.
+    with pytest.raises(RuntimeError):
+        validate_jwt_secret("prodution", DEFAULT_JWT_SECRET)
+
+
+def test_default_jwt_secret_is_allowed_in_non_production_environments():
+    for environment in NON_PRODUCTION_ENVIRONMENTS:
+        validate_jwt_secret(environment, DEFAULT_JWT_SECRET)
+
+
+def test_environment_matching_is_case_and_whitespace_insensitive_at_import():
+    # ENVIRONMENT is normalised before it reaches the guard; confirm the guard
+    # itself is strict so the normalisation stays the single place that decides.
+    with pytest.raises(RuntimeError):
+        validate_jwt_secret("Development", DEFAULT_JWT_SECRET)

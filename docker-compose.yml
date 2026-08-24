@@ -21,6 +21,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://aegis:aegis_password@db:5432/aegis}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      # Dev default, sanctioned only because ENVIRONMENT below is 'docker'.
+      # The backend refuses to start on this value in any other environment.
       JWT_SECRET: ${JWT_SECRET:-dev-only-change-me}
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-aegis_session}
       CSRF_COOKIE_NAME: ${CSRF_COOKIE_NAME:-aegis_csrf}
